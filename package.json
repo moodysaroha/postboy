@@ -31,6 +31,7 @@
     "@electron-forge/plugin-fuses": "^7.8.3",
     "@electron-forge/publisher-github": "^7.8.3",
     "@electron/fuses": "^1.8.0",
-    "electron": "^38.0.0"
+    "electron": "^38.0.0",
+    "electron-icon-maker": "^0.0.5"
   }
 }

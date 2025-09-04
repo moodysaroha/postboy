@@ -4,6 +4,7 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
+    icon: './src/assets/icon', // Electron Forge will automatically append the correct extension
   },
   rebuildConfig: {},
   publishers: [
@@ -32,8 +33,8 @@ module.exports = {
         noMsi: true,
         // Note: remoteReleases should be commented out for first release to avoid 404 errors
         remoteReleases: 'https://github.com/moodysaroha/postboy/releases/latest/download/',
-        setupIcon: undefined, // You can add an icon path here if you have one
-        loadingGif: undefined  // You can add a loading gif path here if you have one
+        setupIcon: './src/assets/icon.ico', // Windows installer icon
+        loadingGif: undefined  // Optional: './src/assets/loading.gif' - shows during Windows installation
       },
     },
     {
