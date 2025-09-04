@@ -4,7 +4,7 @@ const path = require('path');
 class AppUpdater {
   constructor() {
     // Replace 'yourusername' with your actual GitHub username
-    this.feedURL = 'https://github.com/yourusername/postboy/releases/latest/download/';
+    this.feedURL = 'https://github.com/moodysaroha/postboy/releases/latest/download/';
     this.setupUpdater();
   }
 

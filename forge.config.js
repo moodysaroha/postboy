@@ -28,7 +28,12 @@ module.exports = {
         authors: 'Gaurav Saroha',
         description: 'PostBoy',
         setupExe: 'PostBoySetup.exe',
-        noMsi: true
+        noMsi: true,
+        // Generate delta packages for smaller updates
+        remoteReleases: 'https://github.com/moodysaroha/postboy/releases/latest/download/',
+        // Ensure proper update files are generated
+        setupIcon: undefined, // You can add an icon path here if you have one
+        loadingGif: undefined  // You can add a loading gif path here if you have one
       },
     },
     {
