@@ -179,16 +179,7 @@ if (!$SkipBuild) {
     
     Write-Info "Building PostBoy $Version..."
     
-    # Ensure GH_TOKEN is set for the build
-    if ([string]::IsNullOrEmpty($env:GH_TOKEN)) {
-        Write-Warning "GH_TOKEN not set. Build may work but updates might fail for users."
-        $token = Read-Host "Enter GitHub token (or press Enter to skip)" -AsSecureString
-        if ($token.Length -gt 0) {
-            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($token)
-            $env:GH_TOKEN = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-        }
-    }
-    
+    # No token needed for building since we're using a public releases repo
     Write-Info "Running: pnpm run make"
     pnpm run make
     
