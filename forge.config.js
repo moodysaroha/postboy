@@ -30,9 +30,8 @@ module.exports = {
         description: 'PostBoy',
         setupExe: 'PostBoySetup.exe',
         noMsi: true,
-        // Note: remoteReleases is commented out for first release to avoid 404 errors
-        // Uncomment after first successful release for delta updates:
-        // remoteReleases: 'https://github.com/moodysaroha/postboy/releases/latest/download/',
+        // Note: remoteReleases should be commented out for first release to avoid 404 errors
+        remoteReleases: 'https://github.com/moodysaroha/postboy/releases/latest/download/',
         setupIcon: undefined, // You can add an icon path here if you have one
         loadingGif: undefined  // You can add a loading gif path here if you have one
       },
