@@ -11,6 +11,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+      actions: read
+      metadata: read
 
     steps:
       - name: Checkout code
@@ -31,6 +33,7 @@ jobs:
 
       - name: Build and publish to GitHub Releases
         env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm run publish
 

@@ -17,7 +17,8 @@ module.exports = {
         },
         prerelease: false,
         draft: false,
-        generateReleaseNotes: true
+        generateReleaseNotes: true,
+        authToken: process.env.GH_TOKEN
       }
     }
   ],
@@ -31,10 +32,11 @@ module.exports = {
         description: 'PostBoy',
         setupExe: 'PostBoySetup.exe',
         noMsi: true,
-        // Note: remoteReleases enables delta updates by referencing previous releases
-        remoteReleases: 'https://github.com/moodysaroha/postboy',
         setupIcon: './src/assets/icon.ico', // Windows installer icon
-        loadingGif: undefined  // Optional: './src/assets/loading.gif' - shows during Windows installation
+        loadingGif: undefined,  // Optional: './src/assets/loading.gif' - shows during Windows installation
+        // Skip checking for remote releases during build to avoid private repo access issues
+        // The auto-updater in the app will handle updates with proper authentication
+        remoteReleases: false
       },
     },
     {
