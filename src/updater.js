@@ -129,23 +129,27 @@ class AppUpdater {
     // For development, it can be set via environment variable
     let githubToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
     
-    // In packaged app, use embedded token if no env token is available
-    // This allows end users to get updates without setting tokens
-    if (app.isPackaged && !githubToken) {
-      // IMPORTANT: Replace this with your actual token when building for distribution
-      // This token should have 'repo' scope for private repositories
-      // Consider using a dedicated bot account with limited permissions
-      githubToken = 'ghp_' + 'B86K3RlD1Kx9WmkP3xWu0onZfmxSei24UFUr'; // Split to avoid GitHub scanning
+    // For packaged apps, check the public releases repository
+    // No token needed for public repositories
+    if (app.isPackaged) {
+      // Use public releases repository - no authentication needed
+      autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'moodysaroha',
+        repo: 'postboy-releases', // Public repo with only releases, no source code
+        private: false
+        // No token needed for public repo
+      });
+    } else {
+      // Development mode - use private repo with token for testing
+      autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'moodysaroha',
+        repo: 'postboy',
+        private: true,
+        token: githubToken
+      });
     }
-    
-    // Set the feed URL for GitHub releases
-    autoUpdater.setFeedURL({
-      provider: 'github',
-      owner: 'moodysaroha',
-      repo: 'postboy',
-      private: true,
-      token: githubToken
-    });
     
     // Also set request headers for authentication
     if (githubToken) {
