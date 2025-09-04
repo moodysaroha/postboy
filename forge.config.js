@@ -5,6 +5,9 @@ module.exports = {
   packagerConfig: {
     asar: true,
     icon: './src/assets/icon', // Electron Forge will automatically append the correct extension
+    extraResources: [
+      './app-update.yml' // Include app-update.yml in the resources folder
+    ]
   },
   rebuildConfig: {},
   publishers: [

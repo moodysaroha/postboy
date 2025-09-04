@@ -8,6 +8,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-notification', (event, data) => callback(data));
   },
   
+  // Send update response back to main process
+  sendUpdateResponse: (response) => {
+    ipcRenderer.send('update-response', response);
+  },
+  
   // Remove listener
   removeUpdateListener: () => {
     ipcRenderer.removeAllListeners('update-notification');

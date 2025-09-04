@@ -226,6 +226,7 @@ class ModalManager {
   // Method for showing update-specific modals
   async showUpdateModal(updateInfo) {
     const { type, data } = updateInfo;
+    console.log('Showing update modal:', type, data);
 
     switch (type) {
       case 'checking':

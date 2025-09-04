@@ -26,22 +26,22 @@ class AppUpdater {
           resolve(null);
         } else {
           // For messages that need a response, wait for it
-          // Store resolve function to be called when response is received
-          this.pendingResponse = resolve;
+          const { ipcMain } = require('electron');
           
           // Set up one-time listener for response
-          this.mainWindow.webContents.once('ipc-message', (event, channel, ...args) => {
-            if (channel === 'update-response') {
-              resolve(args[0]);
+          const responseHandler = (event, response) => {
+            if (event.sender === this.mainWindow.webContents) {
+              ipcMain.removeListener('update-response', responseHandler);
+              resolve(response);
             }
-          });
+          };
+          
+          ipcMain.on('update-response', responseHandler);
           
           // Timeout after 60 seconds if no response
           setTimeout(() => {
-            if (this.pendingResponse) {
-              this.pendingResponse = null;
-              resolve(null);
-            }
+            ipcMain.removeListener('update-response', responseHandler);
+            resolve(null);
           }, 60000);
         }
       } else {
@@ -125,12 +125,18 @@ class AppUpdater {
     autoUpdater.autoDownload = false; // Don't auto-download, let user choose
     autoUpdater.autoInstallOnAppQuit = true;
     
+    // Set the feed URL for GitHub releases
+    // electron-updater will automatically look for app-update.yml in resources folder
+    autoUpdater.setFeedURL({
+      provider: 'github',
+      owner: 'moodysaroha',
+      repo: 'postboy',
+      private: true,
+      token: process.env.GH_TOKEN
+    });
+    
     // For private repositories, electron-updater needs a GitHub token
-    // The token can be provided via GH_TOKEN environment variable
     if (process.env.GH_TOKEN) {
-      autoUpdater.requestHeaders = {
-        'Authorization': `token ${process.env.GH_TOKEN}`
-      };
       console.log('GitHub token configured for private repository access');
     } else {
       console.log('No GitHub token found - updates may fail for private repositories');
@@ -164,12 +170,17 @@ class AppUpdater {
       }
       
       // Send to renderer process
+      console.log('Sending update notification to renderer...');
       this.sendToRenderer({
         type: 'available',
         data: { version: info.version }
       }).then((result) => {
+        console.log('User response received:', result);
         if (result && result.response === 1) { // "Download Now" is button index 1
+          console.log('User chose to download update');
           autoUpdater.downloadUpdate();
+        } else {
+          console.log('User chose to skip update');
         }
       });
     });

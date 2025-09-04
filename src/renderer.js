@@ -1279,7 +1279,11 @@ function initializeApp() {
   // Setup IPC listeners for update notifications
   if (window.electronAPI) {
     window.electronAPI.onUpdateNotification(async (data) => {
-      await window.modalManager.showUpdateModal(data);
+      const result = await window.modalManager.showUpdateModal(data);
+      // Send response back to main process if needed
+      if (result && window.electronAPI.sendUpdateResponse) {
+        window.electronAPI.sendUpdateResponse(result);
+      }
     });
   }
 }
