@@ -348,7 +348,11 @@ class PostBoy {
     const url = document.getElementById('url-input').value.trim();
     
     if (!url) {
-      alert('Please enter a URL');
+      await window.modalManager.showWarning(
+        'URL Required',
+        'Please enter a URL to send the request.'
+      );
+      document.getElementById('url-input').focus();
       return;
     }
 
@@ -761,11 +765,18 @@ class PostBoy {
     }
   }
 
-  clearHistory() {
-    if (window.confirm('Are you sure you want to clear all history?')) {
+  async clearHistory() {
+    const confirmed = await window.modalManager.confirm(
+      'Clear History',
+      'Are you sure you want to clear all history?',
+      'This action cannot be undone.'
+    );
+    
+    if (confirmed) {
       this.history = [];
       localStorage.removeItem('api-history');
       this.renderHistory();
+      this.addConsoleLog('History cleared');
     }
   }
 
@@ -1251,6 +1262,9 @@ class PostBoy {
 
 // Initialize function to avoid duplication
 function initializeApp() {
+  // Initialize modal manager
+  window.modalManager = new ModalManager();
+  
   // Initialize auth manager
   window.authManager = new AuthManager();
   window.authManager.init();
@@ -1261,6 +1275,13 @@ function initializeApp() {
   
   // Initialize main app
   window.postboy = new PostBoy();
+  
+  // Setup IPC listeners for update notifications
+  if (window.electronAPI) {
+    window.electronAPI.onUpdateNotification(async (data) => {
+      await window.modalManager.showUpdateModal(data);
+    });
+  }
 }
 
 // Initialize when DOM is ready

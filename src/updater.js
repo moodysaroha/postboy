@@ -1,9 +1,123 @@
-const { app, dialog } = require('electron');
+const { app, dialog, BrowserWindow } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
 class AppUpdater {
   constructor() {
+    this.isManualCheck = false;
+    this.updateCheckTimeout = null;
+    this.mainWindow = null;
     this.setupUpdater();
+  }
+  
+  setMainWindow(window) {
+    this.mainWindow = window;
+  }
+  
+  sendToRenderer(data) {
+    return new Promise((resolve) => {
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        // Send notification to renderer
+        this.mainWindow.webContents.send('update-notification', data);
+        
+        // For messages that don't need a response, resolve immediately
+        if (data.type === 'checking' || data.type === 'dev-mode' || 
+            data.type === 'not-available' || data.type === 'error' || 
+            data.type === 'timeout') {
+          resolve(null);
+        } else {
+          // For messages that need a response, wait for it
+          // Store resolve function to be called when response is received
+          this.pendingResponse = resolve;
+          
+          // Set up one-time listener for response
+          this.mainWindow.webContents.once('ipc-message', (event, channel, ...args) => {
+            if (channel === 'update-response') {
+              resolve(args[0]);
+            }
+          });
+          
+          // Timeout after 60 seconds if no response
+          setTimeout(() => {
+            if (this.pendingResponse) {
+              this.pendingResponse = null;
+              resolve(null);
+            }
+          }, 60000);
+        }
+      } else {
+        // Fallback to native dialog if no window available
+        this.showNativeDialog(data).then(resolve);
+      }
+    });
+  }
+  
+  async showNativeDialog(data) {
+    // Fallback to native dialogs if renderer is not available
+    switch (data.type) {
+      case 'available':
+        const availableResult = await dialog.showMessageBox({
+          type: 'info',
+          title: 'Update Available',
+          message: `A new version (${data.data.version}) of PostBoy is available.`,
+          detail: 'Would you like to download it now?',
+          buttons: ['Later', 'Download Now'],
+          defaultId: 1
+        });
+        return availableResult;
+      
+      case 'not-available':
+        await dialog.showMessageBox({
+          type: 'info',
+          title: 'No Updates Available',
+          message: 'PostBoy is up to date!',
+          detail: `You are running the latest version (${data.data.version}).`,
+          buttons: ['OK']
+        });
+        return null;
+      
+      case 'downloaded':
+        const downloadedResult = await dialog.showMessageBox({
+          type: 'info',
+          title: 'Update Ready',
+          message: `Version ${data.data.version} has been downloaded.`,
+          detail: 'The update will be applied when you restart the application. Would you like to restart now?',
+          buttons: ['Later', 'Restart Now'],
+          defaultId: 1
+        });
+        return downloadedResult;
+      
+      case 'error':
+        dialog.showErrorBox('Update Error', 
+          `An error occurred while checking for updates: ${data.data.message}`);
+        return null;
+      
+      case 'timeout':
+        await dialog.showMessageBox({
+          type: 'warning',
+          title: 'Update Check Timeout',
+          message: 'Update check is taking longer than expected.',
+          detail: 'The update server may be unreachable. Please check your internet connection and try again later.',
+          buttons: ['OK']
+        });
+        return null;
+      
+      case 'dev-mode':
+        await dialog.showMessageBox({
+          type: 'info',
+          title: 'Development Mode',
+          message: 'Updates are not available in development mode.',
+          buttons: ['OK']
+        });
+        return null;
+      
+      case 'checking':
+        // Can't really show a non-blocking dialog with native dialogs
+        console.log('Checking for updates...');
+        return null;
+      
+      default:
+        return null;
+    }
   }
 
   setupUpdater() {
@@ -42,15 +156,19 @@ class AppUpdater {
 
     autoUpdater.on('update-available', (info) => {
       console.log('Update available!', info);
-      dialog.showMessageBox({
-        type: 'info',
-        title: 'Update Available',
-        message: `A new version (${info.version}) of PostBoy is available.`,
-        detail: 'Would you like to download it now?',
-        buttons: ['Download Now', 'Later'],
-        defaultId: 0
+      // Reset manual check flag and clear timeout when update is found
+      this.isManualCheck = false;
+      if (this.updateCheckTimeout) {
+        clearTimeout(this.updateCheckTimeout);
+        this.updateCheckTimeout = null;
+      }
+      
+      // Send to renderer process
+      this.sendToRenderer({
+        type: 'available',
+        data: { version: info.version }
       }).then((result) => {
-        if (result.response === 0) {
+        if (result && result.response === 1) { // "Download Now" is button index 1
           autoUpdater.downloadUpdate();
         }
       });
@@ -58,6 +176,19 @@ class AppUpdater {
 
     autoUpdater.on('update-not-available', () => {
       console.log('App is up to date.');
+      // Clear timeout if set
+      if (this.updateCheckTimeout) {
+        clearTimeout(this.updateCheckTimeout);
+        this.updateCheckTimeout = null;
+      }
+      // Only show dialog if this was a manual check
+      if (this.isManualCheck) {
+        this.sendToRenderer({
+          type: 'not-available',
+          data: { version: app.getVersion() }
+        });
+        this.isManualCheck = false;
+      }
     });
 
     autoUpdater.on('download-progress', (progressObj) => {
@@ -69,16 +200,12 @@ class AppUpdater {
 
     autoUpdater.on('update-downloaded', (info) => {
       console.log('Update downloaded');
-      const dialogOpts = {
-        type: 'info',
-        buttons: ['Restart Now', 'Later'],
-        title: 'Update Ready',
-        message: `Version ${info.version} has been downloaded.`,
-        detail: 'The update will be applied when you restart the application. Would you like to restart now?'
-      };
-
-      dialog.showMessageBox(dialogOpts).then((returnValue) => {
-        if (returnValue.response === 0) {
+      
+      this.sendToRenderer({
+        type: 'downloaded',
+        data: { version: info.version }
+      }).then((result) => {
+        if (result && result.response === 1) { // "Restart Now" is button index 1
           autoUpdater.quitAndInstall();
         }
       });
@@ -86,8 +213,19 @@ class AppUpdater {
 
     autoUpdater.on('error', (error) => {
       console.error('Auto-updater error:', error);
-      dialog.showErrorBox('Update Error', 
-        `An error occurred while checking for updates: ${error.message}`);
+      // Clear timeout if set
+      if (this.updateCheckTimeout) {
+        clearTimeout(this.updateCheckTimeout);
+        this.updateCheckTimeout = null;
+      }
+      // Only show error dialog if this was a manual check
+      if (this.isManualCheck) {
+        this.sendToRenderer({
+          type: 'error',
+          data: { message: error.message }
+        });
+        this.isManualCheck = false;
+      }
     });
   }
 
@@ -105,21 +243,34 @@ class AppUpdater {
 
   checkForUpdatesManual() {
     if (!app.isPackaged) {
-      dialog.showMessageBox({
-        type: 'info',
-        title: 'Development Mode',
-        message: 'Updates are not available in development mode.',
-        buttons: ['OK']
+      this.sendToRenderer({
+        type: 'dev-mode',
+        data: {}
       });
       return;
     }
 
-    dialog.showMessageBox({
-      type: 'info',
-      title: 'Checking for Updates',
-      message: 'Checking for updates...',
-      detail: 'You will be notified when the check is complete.',
-      buttons: ['OK']
+    // Set flag to indicate this is a manual check
+    this.isManualCheck = true;
+    
+    // Set a timeout to ensure user gets feedback
+    const timeoutId = setTimeout(() => {
+      if (this.isManualCheck) {
+        this.isManualCheck = false;
+        this.sendToRenderer({
+          type: 'timeout',
+          data: {}
+        });
+      }
+    }, 30000); // 30 second timeout
+    
+    // Store timeout ID to clear it if we get a response
+    this.updateCheckTimeout = timeoutId;
+    
+    // Show checking notification
+    this.sendToRenderer({
+      type: 'checking',
+      data: {}
     });
     
     autoUpdater.checkForUpdates();

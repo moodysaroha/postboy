@@ -177,6 +177,10 @@ app.whenReady().then(() => {
   // Then create main window in background
   setTimeout(() => {
     createWindow();
+    // Set main window for updater after it's created
+    if (appUpdater && mainWindow) {
+      appUpdater.setMainWindow(mainWindow);
+    }
   }, 100);
 
   app.on('activate', () => {
