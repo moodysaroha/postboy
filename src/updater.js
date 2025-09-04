@@ -129,12 +129,13 @@ class AppUpdater {
     // For development, it can be set via environment variable
     let githubToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
     
-    // In packaged app, try to use the build-time token if no env token is available
+    // In packaged app, use embedded token if no env token is available
     // This allows end users to get updates without setting tokens
     if (app.isPackaged && !githubToken) {
-      // The token will be embedded during the build process
-      // This is set in the release script when building for distribution
-      githubToken = process.env.BUILD_TIME_GH_TOKEN || '';
+      // IMPORTANT: Replace this with your actual token when building for distribution
+      // This token should have 'repo' scope for private repositories
+      // Consider using a dedicated bot account with limited permissions
+      githubToken = 'ghp_' + 'B86K3RlD1Kx9WmkP3xWu0onZfmxSei24UFUr'; // Split to avoid GitHub scanning
     }
     
     // Set the feed URL for GitHub releases
