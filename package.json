@@ -1,7 +1,7 @@
 {
   "name": "postboy",
   "productName": "postboy",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "A minimal PostBoy built with Electron for API testing",
   "main": "src/index.js",
   "homepage": "https://github.com/moodysaroha/postboy",

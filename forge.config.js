@@ -4,7 +4,7 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
-    icon: './src/assets/icon', // Electron Forge will automatically append the correct extension
+    icon: './src/assets/icons/win/icon', // Electron Forge will automatically append the correct extension
     extraResources: [
       './app-update.yml' // Include app-update.yml in the resources folder
     ]
@@ -24,7 +24,7 @@ module.exports = {
         description: 'PostBoy',
         setupExe: 'PostBoySetup.exe',
         noMsi: true,
-        setupIcon: './src/assets/icon.ico', // Windows installer icon
+        setupIcon: require('path').resolve(__dirname, 'src/assets/icons/win/icon.ico'), // Windows installer icon
         loadingGif: undefined,  // Optional: './src/assets/loading.gif' - shows during Windows installation
         // Skip checking for remote releases during build to avoid private repo access issues
         // The auto-updater in the app will handle updates with proper authentication
