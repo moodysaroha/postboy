@@ -11,11 +11,12 @@ module.exports = {
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: 'yourusername', // Replace with your GitHub username
-          name: 'postboy' // Replace with your repository name
+          owner: 'moodysaroha',
+          name: 'postboy'
         },
         prerelease: false,
-        draft: false
+        draft: false,
+        generateReleaseNotes: true
       }
     }
   ],
