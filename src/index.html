@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>PostBoy</title>
+    <link rel="stylesheet" href="index.css" />
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <h1>🚀 PostBoy</h1>
+      </div>
+      <div class="header-right">
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="app-container">
+      <!-- Left Sidebar - Collections & History -->
+      <div class="sidebar left-sidebar" id="left-sidebar">
+        <div class="sidebar-header">
+          <div class="header-title">
+            <h3>Collections</h3>
+            <button class="collapse-btn" data-target="left-sidebar" title="Collapse/Expand">
+              <span class="collapse-icon">◀</span>
+            </button>
+          </div>
+          <button id="new-collection-btn" class="collection-new-btn" title="New Collection">+</button>
+        </div>
+        
+        <!-- Collections/History Tabs -->
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab-btn active" data-tab="collections">Collections</button>
+          <button class="sidebar-tab-btn" data-tab="history">History</button>
+        </div>
+
+        <!-- Collections Tab -->
+        <div id="collections-tab" class="sidebar-tab-pane active">
+          <div class="collections-list" id="collections-list">
+            <div class="empty-collections">
+              <p>No collections yet</p>
+              <p>Click "+" to create your first collection</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="sidebar-tab-pane">
+          <div class="history-toolbar">
+            <button id="clear-history" class="clear-btn">Clear</button>
+          </div>
+          <div class="history-list" id="history-list">
+            <div class="history-item">
+              <div class="method get">GET</div>
+              <div class="url">https://jsonplaceholder.typicode.com/posts/1</div>
+              <div class="status success">200</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="drag-handle drag-handle-right" data-target="left-sidebar"></div>
+      </div>
+
+      <!-- Center - Main Area -->
+      <div class="main-content">
+        <!-- Request Tabs Container -->
+        <div class="request-tabs-container">
+          <div class="request-tabs-list">
+            <div class="request-tab active" data-tab-id="new-request">
+              <span class="tab-title">New Request</span>
+              <button class="tab-close-btn" style="display: none;">&times;</button>
+            </div>
+          </div>
+          <button class="new-tab-btn" title="New Tab">+</button>
+        </div>
+
+        <div class="request-section">
+          <div class="request-line">
+            <select id="method-select" class="method-select">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+              <option value="PATCH">PATCH</option>
+            </select>
+            <input type="text" id="url-input" class="url-input" placeholder="Enter request URL" />
+            <button id="send-btn" class="send-btn">Send</button>
+            <button id="save-request-btn-main" class="send-btn">Save</button>            
+          </div>
+
+          <div class="request-tabs">
+            <button class="tab-btn active" data-tab="params">
+              Params
+              <span class="tab-count" id="params-count">1</span>
+            </button>
+            <button class="tab-btn" data-tab="body">
+              Body
+              <span class="body-indicator" id="body-indicator" style="display: none;"></span>
+            </button>
+            <button class="tab-btn" data-tab="auth">Authorization</button>
+            <button class="tab-btn" data-tab="headers">
+              Headers
+              <span class="tab-count" id="headers-count">0</span>
+            </button>
+          </div>
+
+          <div class="tab-content">
+            <div id="params-tab" class="tab-pane active">
+              <div class="key-value-pairs" id="params-container">
+                <div class="key-value-row">
+                  <input type="text" placeholder="Key" class="key-input" />
+                  <input type="text" placeholder="Value" class="value-input" />
+                  <button class="remove-btn">×</button>
+                </div>
+              </div>
+              <button class="add-btn" data-target="params">+ Add Parameter</button>
+            </div>
+
+            <div id="body-tab" class="tab-pane">
+              <div id="body-input" class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter request body (JSON, XML, etc.)"></div>
+            </div>
+
+            <div id="auth-tab" class="tab-pane">
+              <div class="auth-section">
+                <div class="auth-type-selector">
+                  <label for="auth-type">Type:</label>
+                  <select id="auth-type" class="auth-type-select">
+                    <option value="none">No Auth</option>
+                    <option value="basic">Basic Auth</option>
+                    <option value="bearer">Bearer Token</option>
+                    <option value="api-key">API Key</option>
+                  </select>
+                </div>
+                <div id="auth-content" class="auth-content">
+                  <div class="empty-state">This request does not use any authorization.</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="headers-tab" class="tab-pane">
+              <div class="key-value-pairs" id="headers-container">
+                <div class="key-value-row">
+                  <input type="text" placeholder="Key" class="key-input" />
+                  <input type="text" placeholder="Value" class="value-input" />
+                  <button class="remove-btn">×</button>
+                </div>
+              </div>
+              <button class="add-btn" data-target="headers">+ Add Header</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar - Response -->
+      <div class="sidebar right-sidebar" id="right-sidebar">
+        <div class="sidebar-header">
+          <div class="header-title">
+            <h3>Response</h3>
+            <button class="collapse-btn" data-target="right-sidebar" title="Collapse/Expand">
+              <span class="collapse-icon">▶</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Response Status Bar -->
+        <div class="response-status-bar" id="response-status-bar" style="display: none;">
+          <div class="status-info">
+            <span class="status-badge" id="status-badge"></span>
+            <span class="response-time" id="response-time"></span>
+            <span class="response-size" id="response-size"></span>
+          </div>
+          <div class="response-actions">
+            <span class="response-timestamp" id="response-timestamp"></span>
+            <button class="dropdown-btn">▼</button>
+          </div>
+        </div>
+
+        <!-- Response Tabs -->
+        <div class="response-tabs">
+          <button class="response-tab-btn active" data-tab="preview">Preview</button>
+          <button class="response-tab-btn" data-tab="headers">
+            Headers
+            <span class="tab-count" id="headers-count">4</span>
+          </button>
+          <!-- <button class="response-tab-btn" data-tab="cookies">Cookies</button>
+          <button class="response-tab-btn" data-tab="tests">
+            Tests
+            <span class="tab-count">0 / 0</span>
+          </button>
+          <button class="response-tab-btn" data-tab="mock">Mock</button>
+          <button class="response-tab-btn" data-tab="console">Console</button> -->
+        </div>
+
+        <!-- Tab Content -->
+        <div class="response-content">
+          <!-- Preview Tab -->
+          <div id="preview-tab" class="response-tab-pane active">
+            <div class="json-viewer">
+              <div class="empty-state" id="response-empty-state">Click "Send" to see response</div>
+              <div id="json-container" class="json-container" style="display: none;">
+                <div id="response-body" class="response-body"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Headers Tab -->
+          <div id="response-headers-tab" class="response-tab-pane">
+            <div class="headers-table">
+              <div class="table-header">
+                <div class="table-col">NAME</div>
+                <div class="table-col">VALUE</div>
+              </div>
+              <div class="table-body" id="response-headers-table">
+                <!-- Headers will be populated here -->
+              </div>
+            </div>
+            <button class="copy-btn">Copy to Clipboard</button>
+          </div>
+
+          <!-- Other tabs -->
+          <div id="cookies-tab" class="response-tab-pane">
+            <div class="empty-state">No cookies found</div>
+          </div>
+
+          <div id="tests-tab" class="response-tab-pane">
+            <div class="empty-state">No tests defined</div>
+          </div>
+
+          <div id="mock-tab" class="response-tab-pane">
+            <div class="empty-state">Mock server not configured</div>
+          </div>
+
+          <div id="console-tab" class="response-tab-pane">
+            <div class="console-content" id="console-content">
+              <div class="console-log">Ready to make requests...</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="drag-handle drag-handle-left" data-target="right-sidebar"></div>
+      </div>
+    </div>
+
+    <!-- Modal for creating new collection -->
+    <div id="new-collection-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Create New Collection</h3>
+          <button class="modal-close" id="close-collection-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label for="collection-name-input">Collection Name:</label>
+          <input type="text" id="collection-name-input" placeholder="Enter collection name..." />
+        </div>
+        <div class="modal-footer">
+          <button id="cancel-collection" class="modal-btn cancel-btn">Cancel</button>
+          <button id="create-collection" class="modal-btn create-btn">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for saving request to collection -->
+    <div id="save-request-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Save Request</h3>
+          <button class="modal-close" id="close-save-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label for="request-name-input">Request Name:</label>
+          <input type="text" id="request-name-input" placeholder="Enter request name..." />
+          
+          <label for="collection-select">Select Collection:</label>
+          <select id="collection-select">
+            <option value="">Select a collection...</option>
+          </select>
+          
+          <div class="modal-actions">
+            <button id="create-new-collection-option" class="link-btn">+ Create New Collection</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancel-save-request" class="modal-btn cancel-btn">Cancel</button>
+          <button id="save-request-confirm" class="modal-btn create-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- Load modules first -->
+    <script src="renderjson.js"></script>    
+    <script src="auth.js"></script>
+    <script src="collections.js"></script>
+    <!-- Then load main app -->
+    <script src="renderer.js"></script>
+  </body>
+</html>

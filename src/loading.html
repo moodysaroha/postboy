@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Loading PostBoy...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: #2c2f33;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Logo container with spinning animation */
+        .logo-container {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        /* Main logo */
+        .logo {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 28%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            color: white;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Loading dots container */
+        .loading-text {
+            color: #dcddde;
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        /* Animated dots */
+        .dots {
+            display: inline-flex;
+            margin-left: 2px;
+        }
+
+        .dots span {
+            width: 4px;
+            height: 4px;
+            background: #dcddde;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: blink 1.4s infinite;
+        }
+
+        .dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* Status text */
+        .status-text {
+            color: #8e9297;
+            font-size: 13px;
+            margin-top: 4px;
+            height: 20px;
+            transition: opacity 0.3s ease;
+        }
+
+        .progress-container {
+            width: 300px;
+            height: 8px;
+            background: #202225;
+            border-radius: 4px;
+            margin-top: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Shimmer effect on progress bar */
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            animation: shimmer 2s infinite;
+        }
+
+        /* Version info (bottom) */
+        .version-info {
+            position: absolute;
+            bottom: 20px;
+            color: #4f545c;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes blink {
+            0%, 60%, 100% {
+                opacity: 0.3;
+            }
+            30% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes shimmer {
+            from {
+                transform: translateX(-100%);
+            }
+            to {
+                transform: translateX(200%);
+            }
+        }
+
+        .tip-container {
+            position: absolute;
+            bottom: 60px;
+            color: #8e9297;
+            font-size: 12px;
+            text-align: center;
+            max-width: 400px;
+            padding: 0 20px;
+            opacity: 0;
+            animation: fadeInTip 0.5s ease-out 0.5s forwards;
+        }
+
+        .tip-label {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        @keyframes fadeInTip {
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-container">
+        <div class="logo-container">
+            <div class="logo">🚀</div>
+        </div>
+        
+        <div class="loading-text">
+            Loading PostBoy
+            <div class="dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        
+        <div class="status-text" id="status">Initializing application</div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+    </div>
+
+    <div class="tip-container">
+        <div class="tip-label">DID YOU KNOW</div>
+        <div id="tip-text">You can use keyboard shortcuts like Ctrl+Enter to send requests quickly!</div>
+    </div>
+
+    <div class="version-info">POSTBOY v1.0.0</div>
+
+    <script>
+        // Loading messages that cycle through
+        const loadingMessages = [
+            'Initializing application',
+            'Loading modules',
+            'Setting up workspace',
+            'Preparing UI components',
+            'Almost ready'
+        ];
+
+        const tips = [
+            'Press Ctrl+Enter from anywhere to send your request!',
+            'Collections help you organize and save your API requests for later use.',
+            'You can drag the sidebars to resize them to your preference.',
+            'PostBoy automatically saves your request history locally.',
+            'The body editor automatically formats JSON when you paste it.',
+            'Press Enter in the URL field to send requests quickly!'
+        ];
+
+        let messageIndex = 0;
+        let progress = 0;
+
+        // Update status message periodically
+        function updateStatus() {
+            const statusEl = document.getElementById('status');
+            if (statusEl && messageIndex < loadingMessages.length) {
+                statusEl.textContent = loadingMessages[messageIndex];
+                messageIndex++;
+            }
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            const progressEl = document.getElementById('progress');
+            if (progressEl && progress <= 100) {
+                progress += Math.random() * 30;
+                if (progress > 100) progress = 100;
+                progressEl.style.width = progress + '%';
+            }
+        }
+
+        // Show random tip
+        function showRandomTip() {
+            const tipEl = document.getElementById('tip-text');
+            if (tipEl) {
+                const randomTip = tips[Math.floor(Math.random() * tips.length)];
+                tipEl.textContent = randomTip;
+            }
+        }
+
+        // Initialize animations
+        showRandomTip();
+        
+        // Update status every 400ms
+        const statusInterval = setInterval(updateStatus, 400);
+        
+        // Update progress every 200ms
+        const progressInterval = setInterval(updateProgress, 200);
+
+        // Listen for ready message from main process
+        const { ipcRenderer } = require('electron');
+        
+        ipcRenderer.on('app-ready', () => {
+            // Complete the progress bar
+            const progressEl = document.getElementById('progress');
+            if (progressEl) {
+                progressEl.style.width = '100%';
+            }
+            
+            // Update final status
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = 'Ready!';
+            }
+            
+            // Clear intervals
+            clearInterval(statusInterval);
+            clearInterval(progressInterval);
+        });
+
+        // Auto-close after maximum time (failsafe)
+        setTimeout(() => {
+            clearInterval(statusInterval);
+            clearInterval(progressInterval);
+        }, 5000);
+    </script>
+</body>
+</html>
