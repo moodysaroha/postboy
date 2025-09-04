@@ -125,21 +125,42 @@ class AppUpdater {
     autoUpdater.autoDownload = false; // Don't auto-download, let user choose
     autoUpdater.autoInstallOnAppQuit = true;
     
+    // For production builds, the token should be set during build time
+    // For development, it can be set via environment variable
+    let githubToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+    
+    // In packaged app, try to use the build-time token if no env token is available
+    // This allows end users to get updates without setting tokens
+    if (app.isPackaged && !githubToken) {
+      // The token will be embedded during the build process
+      // This is set in the release script when building for distribution
+      githubToken = process.env.BUILD_TIME_GH_TOKEN || '';
+    }
+    
     // Set the feed URL for GitHub releases
-    // electron-updater will automatically look for app-update.yml in resources folder
     autoUpdater.setFeedURL({
       provider: 'github',
       owner: 'moodysaroha',
       repo: 'postboy',
       private: true,
-      token: process.env.GH_TOKEN
+      token: githubToken
     });
     
-    // For private repositories, electron-updater needs a GitHub token
-    if (process.env.GH_TOKEN) {
-      console.log('GitHub token configured for private repository access');
-    } else {
-      console.log('No GitHub token found - updates may fail for private repositories');
+    // Also set request headers for authentication
+    if (githubToken) {
+      autoUpdater.requestHeaders = {
+        'Authorization': `token ${githubToken}`
+      };
+      if (!app.isPackaged) {
+        // Only log token info in development
+        console.log('GitHub token configured for private repository access');
+        console.log('Token starts with:', githubToken.substring(0, 10) + '...');
+      }
+    } else if (!app.isPackaged) {
+      // Only warn in development mode
+      console.warn('WARNING: No GitHub token found!');
+      console.warn('Set GH_TOKEN or GITHUB_TOKEN environment variable for private repository access');
+      console.warn('Updates will fail for private repositories without a token');
     }
 
     this.setupEventHandlers();
@@ -229,11 +250,25 @@ class AppUpdater {
         clearTimeout(this.updateCheckTimeout);
         this.updateCheckTimeout = null;
       }
+      
+      // Parse the error message for better user feedback
+      let userMessage = error.message;
+      if (error.message.includes('404') || error.message.includes('Not Found')) {
+        const githubToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+        if (!githubToken) {
+          userMessage = 'Cannot check for updates: GitHub authentication token is missing.\n\nFor private repositories, please set the GH_TOKEN environment variable with a valid GitHub Personal Access Token.';
+        } else {
+          userMessage = 'Cannot access the update server. This could be because:\n\n1. The repository is private and the token lacks proper permissions\n2. No releases have been published yet\n3. The repository URL is incorrect\n\nPlease verify your GitHub token has "repo" scope for private repositories.';
+        }
+      } else if (error.message.includes('ENOTFOUND') || error.message.includes('ETIMEDOUT')) {
+        userMessage = 'Cannot reach the update server. Please check your internet connection and try again.';
+      }
+      
       // Only show error dialog if this was a manual check
       if (this.isManualCheck) {
         this.sendToRenderer({
           type: 'error',
-          data: { message: error.message }
+          data: { message: userMessage }
         });
         this.isManualCheck = false;
       }
