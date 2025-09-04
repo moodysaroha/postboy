@@ -31,7 +31,7 @@ module.exports = {
         description: 'PostBoy',
         setupExe: 'PostBoySetup.exe',
         noMsi: true,
-        // Note: remoteReleases should be commented out for first release to avoid 404 errors
+        // Note: remoteReleases enables delta updates by referencing previous releases
         remoteReleases: 'https://github.com/moodysaroha/postboy/releases/latest/download/',
         setupIcon: './src/assets/icon.ico', // Windows installer icon
         loadingGif: undefined  // Optional: './src/assets/loading.gif' - shows during Windows installation

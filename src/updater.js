@@ -5,6 +5,8 @@ class AppUpdater {
   constructor() {
     // Replace 'yourusername' with your actual GitHub username
     this.feedURL = 'https://github.com/moodysaroha/postboy/releases/latest/download/';
+    // GitHub token for private repository access (read-only, releases only)
+    this.githubToken = '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';
     this.setupUpdater();
   }
 
@@ -17,7 +19,8 @@ class AppUpdater {
       autoUpdater.setFeedURL({
         url: this.feedURL,
         headers: {
-          'User-Agent': `${app.getName()}/${app.getVersion()}`
+          'User-Agent': `${app.getName()}/${app.getVersion()}`,
+          'Authorization': `token ${this.githubToken}`
         }
       });
 
