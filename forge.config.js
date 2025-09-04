@@ -4,7 +4,7 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
-    icon: './src/assets/icons/win/icon', // Electron Forge will automatically append the correct extension
+    icon: './src/assets/icons/win/icon.ico', // Use explicit .ico extension for Windows
     extraResources: [
       './app-update.yml' // Include app-update.yml in the resources folder
     ]

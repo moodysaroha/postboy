@@ -22,7 +22,7 @@ const createLoadingWindow = () => {
       nodeIntegration: true,
       contextIsolation: false
     },
-    icon: path.join(__dirname, 'assets', 'icon.png'),
+    icon: path.join(__dirname, 'assets', 'icons', 'win', 'icon.ico'),
   });
 
   loadingWindow.loadFile(path.join(__dirname, 'loading.html'));
@@ -50,7 +50,7 @@ const createWindow = () => {
       backgroundThrottling: false,
       offscreen: false
     },
-    icon: path.join(__dirname, 'assets', 'icon.png'),
+    icon: path.join(__dirname, 'assets', 'icons', 'win', 'icon.ico'),
   });
 
   const template = [

@@ -198,7 +198,7 @@ if (!$SkipBuild) {
     }
     
     Write-Info "Build artifacts:"
-    Get-ChildItem -Path $outDir -Recurse -Include "*.exe", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage" | ForEach-Object {
+    Get-ChildItem -Path $outDir -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage" | ForEach-Object {
         Write-Info "  - $($_.FullName)"
     }
 }
@@ -234,10 +234,10 @@ if ($ghInstalled) {
     git tag $tagVersion 2>$null
     git push origin $tagVersion 2>$null
     
-    # Find release artifacts
+    # Find release artifacts - include ALL Squirrel.Windows files for electron-updater
     $artifacts = @()
     if (!$SkipBuild) {
-        $artifacts = Get-ChildItem -Path "..\postboy\out\make" -Recurse -Include "*.exe", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage"
+        $artifacts = Get-ChildItem -Path "..\postboy\out\make" -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage"
     }
     
     if ($artifacts.Count -eq 0) {
@@ -309,7 +309,7 @@ This version supports automatic updates. The app will check for updates periodic
     Write-Info "Or manually create the release at: https://github.com/moodysaroha/postboy-releases/releases/new"
     Write-Info ""
     Write-Info "Upload these files to the release:"
-    Get-ChildItem -Path "out\make" -Recurse -Include "*.exe", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage" | ForEach-Object {
+    Get-ChildItem -Path "out\make" -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage" | ForEach-Object {
         Write-Info "  - $($_.Name)"
     }
 }
