@@ -2,19 +2,16 @@
 
 # Simplified Release Script for PostBoy
 # This script automates the process of:
-# 1. Building the application
-# 2. Creating a GitHub release in the main postboy repository
-# 3. Publishing release assets for auto-updates
+# 1. Committing and pushing changes
+# 2. Creating a version tag
+# 3. Pushing the tag to trigger GitHub Actions workflow
 
 param(
     [Parameter(Mandatory=$false)]
     [string]$CommitMessage = "Release update",
     
     [Parameter(Mandatory=$false)]
-    [string]$Version = "",
-    
-    [Parameter(Mandatory=$false)]
-    [switch]$SkipBuild = $false
+    [string]$Version = ""
 )
 
 # Colors for output
@@ -78,7 +75,6 @@ if ($CommitMessage -eq "Release update") {
 Write-Info "`nRelease Summary:"
 Write-Info "  Commit Message: $CommitMessage"
 Write-Info "  Version Tag: $tagVersion"
-Write-Info "  Skip Build: $($SkipBuild)"
 Write-Info ""
 
 # Confirm before proceeding
@@ -116,43 +112,8 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Success "✓ Changes pushed successfully"
 
-# STEP 2: Build the application
-if (!$SkipBuild) {
-    Write-Info "`n=== Step 2: Building Application ==="
-    
-    Write-Info "Building PostBoy $Version..."
-    pnpm run make
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Build failed"
-        exit 1
-    }
-    
-    Write-Success "✓ Build completed successfully"
-    
-    # Find the built files
-    $outDir = "out\make"
-    if (!(Test-Path $outDir)) {
-        Write-Error "Build output directory not found: $outDir"
-        exit 1
-    }
-    
-    Write-Info "Build artifacts:"
-    Get-ChildItem -Path $outDir -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage" | ForEach-Object {
-        Write-Info "  - $($_.Name)"
-    }
-}
-
-# STEP 3: Create GitHub Release
-Write-Info "`n=== Step 3: Creating GitHub Release ==="
-
-# Check if GitHub CLI is installed
-$ghInstalled = Get-Command gh -ErrorAction SilentlyContinue
-if (!$ghInstalled) {
-    Write-Error "GitHub CLI not found. Please install it from: https://cli.github.com/"
-    Write-Info "After installing gh CLI, run: gh auth login"
-    exit 1
-}
+# STEP 2: Create and Push Tag
+Write-Info "`n=== Step 2: Creating and Pushing Tag ==="
 
 # Check if tag already exists
 $existingTag = git tag -l $tagVersion
@@ -185,84 +146,17 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Success "✓ Tag created and pushed"
 
-# Find release artifacts
-$artifacts = @()
-if (!$SkipBuild) {
-    $artifacts = Get-ChildItem -Path "out\make" -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage"
-}
-
-if ($artifacts.Count -eq 0) {
-    Write-Warning "No release artifacts found. Creating release without assets."
-}
-
-# Create release notes
-$releaseNotes = @"
-# PostBoy $Version
-
-## What's New
-$CommitMessage
-
-## Downloads
-Download the appropriate version for your platform below.
-
-### Windows
-- **Setup.exe** - Windows installer (recommended)
-- **.zip** - Portable version
-
-### macOS
-- **.zip** - macOS version
-
-### Linux
-- **.deb** - Debian/Ubuntu
-- **.rpm** - Fedora/RedHat
-- **.AppImage** - Universal Linux package
-
-## Auto-Update
-This version supports automatic updates. The app will check for updates periodically and notify you when a new version is available.
-"@
-
-# Save release notes to temp file
-$releaseNotesFile = [System.IO.Path]::GetTempFileName()
-$releaseNotes | Out-File -FilePath $releaseNotesFile -Encoding UTF8
-
-# Create the release
-Write-Info "Creating GitHub release..."
-$ghArgs = @(
-    "release", "create", $tagVersion,
-    "--title", "PostBoy $Version",
-    "--notes-file", $releaseNotesFile,
-    "--target", "main"
-)
-
-# Add artifact paths
-foreach ($artifact in $artifacts) {
-    $ghArgs += $artifact.FullName
-}
-
-gh @ghArgs
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Success "✓ GitHub release created successfully"
-} else {
-    Write-Error "Failed to create GitHub release"
-    # Clean up temp file
-    Remove-Item $releaseNotesFile -Force
-    exit 1
-}
-
-# Clean up temp file
-Remove-Item $releaseNotesFile -Force
-
+Write-Info "`n=== Step 3: GitHub Actions Workflow ==="
+Write-Success "✓ Tag $tagVersion has been pushed to GitHub"
+Write-Info "GitHub Actions will now:"
+Write-Info "  1. Build the application for Windows"
+Write-Info "  2. Create a GitHub Release"
+Write-Info "  3. Upload the release artifacts"
 Write-Info ""
-Write-Success "========================================="
-Write-Success "     Release $tagVersion Complete! 🚀"
-Write-Success "========================================="
+Write-Info "You can monitor the build progress at:"
+Write-Info "  https://github.com/moodysaroha/postboy/actions"
 Write-Info ""
-Write-Info "Release URL: https://github.com/moodysaroha/postboy/releases/tag/$tagVersion"
-Write-Info ""
-Write-Info "Users can now update their PostBoy installations automatically!"
-Write-Info ""
-Write-Info "Next steps:"
-Write-Info "1. Test the auto-update functionality"
-Write-Info "2. Announce the release to users"
-Write-Info "3. Monitor for any update issues"
+Write-Success "✓ Release process initiated successfully!"
+
+# Exit successfully
+exit 0
