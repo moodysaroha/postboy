@@ -39,15 +39,24 @@ jobs:
       - name: Generate latest.yml for auto-updater
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
+          # Read the RELEASES file to get the hash and size
+          $releasesContent = Get-Content "out/make/squirrel.windows/x64/RELEASES"
+          $releaseInfo = $releasesContent -split ' '
+          $sha1Hash = $releaseInfo[0]
+          $fileName = $releaseInfo[1]
+          $fileSize = $releaseInfo[2]
+          
           $latestYml = @"
           version: $version
           files:
-            - url: postboy-$version-full.nupkg
+            - url: $fileName
               sha512: ""
-              size: 0
+              size: $fileSize
           releaseDate: $(Get-Date -Format yyyy-MM-ddTHH:mm:ss.fffZ)
-          path: postboy-$version-full.nupkg
+          path: $fileName
           sha512: ""
+          releaseName: v$version
+          releaseNotes: ""
           "@
           $latestYml | Out-File -FilePath "out/make/squirrel.windows/x64/latest.yml" -Encoding UTF8
 
