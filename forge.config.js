@@ -20,8 +20,17 @@ module.exports = {
   },
   rebuildConfig: {},
   publishers: [
-    // Publisher removed - we handle releases manually to the public releases repo
-    // This keeps source code private while distributing releases publicly
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: {
+          owner: 'moodysaroha',
+          name: 'postboy'
+        },
+        prerelease: false,
+        draft: false
+      }
+    }
   ],
   makers: [
     {
