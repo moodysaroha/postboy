@@ -254,19 +254,18 @@ class ModalManager {
         );
 
       case 'download-started':
-        return this.showInfo(
-          'Downloading Update',
-          `Downloading version ${data.version}...`,
-          'The update is being downloaded in the background. You will be notified when it\'s ready to install.'
-        );
+        // Show the download progress bar
+        this.showDownloadProgress(data.version);
+        return null;
 
       case 'download-progress':
-        // Show download progress in console or status bar
-        // For now, just log it - you could add a progress bar UI later
+        // Update the progress bar
+        this.updateDownloadProgress(data);
         console.log(`Downloading update: ${data.percent}% (${Math.round(data.transferred / 1024 / 1024)}MB / ${Math.round(data.total / 1024 / 1024)}MB)`);
         return null;
 
       case 'downloaded':
+        this.hideDownloadProgress();
         return this.showModal({
           type: 'success',
           title: 'Update Ready',
@@ -278,6 +277,7 @@ class ModalManager {
 
       case 'error':
         this.hideCheckingIndicator();
+        this.hideDownloadProgress();
         return this.showError(
           'Update Error',
           'An error occurred while checking for updates.',
@@ -361,6 +361,115 @@ class ModalManager {
     if (this.checkingIndicator) {
       this.checkingIndicator.remove();
       this.checkingIndicator = null;
+    }
+  }
+
+  showDownloadProgress(version) {
+    // Create download progress bar
+    if (!this.downloadProgress) {
+      this.downloadProgress = document.createElement('div');
+      this.downloadProgress.id = 'download-progress-indicator';
+      this.downloadProgress.innerHTML = `
+        <style>
+          #download-progress-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            min-width: 320px;
+            animation: slideIn 0.3s ease-out;
+          }
+          
+          #download-progress-indicator .progress-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+          }
+          
+          #download-progress-indicator .progress-title {
+            font-weight: 600;
+            font-size: 14px;
+          }
+          
+          #download-progress-indicator .progress-bar-container {
+            background: var(--bg-primary);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 8px;
+          }
+          
+          #download-progress-indicator .progress-bar {
+            background: var(--accent-color);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+          }
+          
+          #download-progress-indicator .progress-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+          }
+          
+          #download-progress-indicator .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            margin-left: auto;
+          }
+          
+          #download-progress-indicator .close-btn:hover {
+            color: var(--text-primary);
+          }
+        </style>
+        <div class="progress-header">
+          <div class="progress-title">Downloading Update v${version}</div>
+          <button class="close-btn" onclick="window.modalManager.hideDownloadProgress()">&times;</button>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="download-progress-bar"></div>
+        </div>
+        <div class="progress-text">
+          <span id="download-percent">0%</span>
+          <span id="download-size">0 MB / 0 MB</span>
+        </div>
+      `;
+      document.body.appendChild(this.downloadProgress);
+    }
+  }
+
+  updateDownloadProgress(data) {
+    if (this.downloadProgress) {
+      const progressBar = document.getElementById('download-progress-bar');
+      const percentText = document.getElementById('download-percent');
+      const sizeText = document.getElementById('download-size');
+      
+      if (progressBar) progressBar.style.width = `${data.percent}%`;
+      if (percentText) percentText.textContent = `${data.percent}%`;
+      if (sizeText) {
+        const transferredMB = Math.round(data.transferred / 1024 / 1024);
+        const totalMB = Math.round(data.total / 1024 / 1024);
+        sizeText.textContent = `${transferredMB} MB / ${totalMB} MB`;
+      }
+    }
+  }
+
+  hideDownloadProgress() {
+    if (this.downloadProgress) {
+      this.downloadProgress.remove();
+      this.downloadProgress = null;
     }
   }
 }
