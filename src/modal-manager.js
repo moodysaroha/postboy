@@ -252,6 +252,19 @@ class ModalManager {
           `You are running the latest version (${data.version}).`
         );
 
+      case 'download-started':
+        return this.showInfo(
+          'Downloading Update',
+          `Downloading version ${data.version}...`,
+          'The update is being downloaded in the background. You will be notified when it\'s ready to install.'
+        );
+
+      case 'download-progress':
+        // Show download progress in console or status bar
+        // For now, just log it - you could add a progress bar UI later
+        console.log(`Downloading update: ${data.percent}% (${Math.round(data.transferred / 1024 / 1024)}MB / ${Math.round(data.total / 1024 / 1024)}MB)`);
+        return null;
+
       case 'downloaded':
         return this.showModal({
           type: 'success',

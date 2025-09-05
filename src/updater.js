@@ -171,6 +171,11 @@ class AppUpdater {
         console.log('User response received:', result);
         if (result && result.response === 1) { // "Download Now" is button index 1
           console.log('User chose to download update');
+          // Notify that download is starting
+          this.sendToRenderer({
+            type: 'download-started',
+            data: { version: info.version }
+          });
           autoUpdater.downloadUpdate();
         } else {
           console.log('User chose to skip update');
@@ -200,6 +205,17 @@ class AppUpdater {
       message += ` - Downloaded ${Math.round(progressObj.percent)}%`;
       message += ` (${Math.round(progressObj.transferred / 1024 / 1024)} MB of ${Math.round(progressObj.total / 1024 / 1024)} MB)`;
       console.log(message);
+      
+      // Send progress to renderer to show download status
+      this.sendToRenderer({
+        type: 'download-progress',
+        data: { 
+          percent: Math.round(progressObj.percent),
+          bytesPerSecond: progressObj.bytesPerSecond,
+          transferred: progressObj.transferred,
+          total: progressObj.total
+        }
+      });
     });
 
     autoUpdater.on('update-downloaded', (info) => {
