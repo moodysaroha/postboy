@@ -1,10 +1,10 @@
 #!/usr/bin/env pwsh
 
-# Release Script for PostBoy
+# Simplified Release Script for PostBoy
 # This script automates the process of:
-# 1. Committing and pushing to the private source repository
-# 2. Building the application
-# 3. Publishing releases to the public releases repository
+# 1. Building the application
+# 2. Creating a GitHub release in the main postboy repository
+# 3. Publishing release assets for auto-updates
 
 param(
     [Parameter(Mandatory=$false)]
@@ -14,10 +14,7 @@ param(
     [string]$Version = "",
     
     [Parameter(Mandatory=$false)]
-    [switch]$SkipBuild = $false,
-    
-    [Parameter(Mandatory=$false)]
-    [switch]$PublishOnly = $false
+    [switch]$SkipBuild = $false
 )
 
 # Colors for output
@@ -27,13 +24,8 @@ function Write-Warning { Write-Host $args -ForegroundColor Yellow }
 function Write-Error { Write-Host $args -ForegroundColor Red }
 
 Write-Info "========================================="
-Write-Info "       PostBoy Release Script"
+Write-Info "   PostBoy Simplified Release Script"
 Write-Info "========================================="
-
-# Configuration
-$sourceRepo = "https://github.com/moodysaroha/postboy.git"
-$releasesRepo = "https://github.com/moodysaroha/postboy-releases.git"
-$releasesDir = "..\postboy-releases"
 
 # Check if we're in a git repository
 if (!(Test-Path .git)) {
@@ -43,7 +35,7 @@ if (!(Test-Path .git)) {
 
 # Check for uncommitted changes
 $status = git status --porcelain
-if ($status -and !$PublishOnly) {
+if ($status) {
     Write-Info "`nUncommitted changes detected:"
     Write-Host $status
     Write-Info ""
@@ -64,19 +56,17 @@ if ([string]::IsNullOrEmpty($Version)) {
     $Version = "$major.$minor.$patch"
     Write-Info "Auto-incrementing to version: $Version"
     
-    if (!$PublishOnly) {
-        # Update package.json with new version
-        $packageJson.version = $Version
-        $packageJson | ConvertTo-Json -Depth 10 | Set-Content package.json
-        Write-Success "Updated package.json with version $Version"
-    }
+    # Update package.json with new version
+    $packageJson.version = $Version
+    $packageJson | ConvertTo-Json -Depth 10 | Set-Content package.json
+    Write-Success "Updated package.json with version $Version"
 }
 
 # Ensure version starts with 'v' for the tag
 $tagVersion = if ($Version.StartsWith('v')) { $Version } else { "v$Version" }
 
 # Prompt for commit message if not provided
-if ($CommitMessage -eq "Release update" -and !$PublishOnly) {
+if ($CommitMessage -eq "Release update") {
     $userMessage = Read-Host "Enter commit message (default: 'Release $tagVersion')"
     if (![string]::IsNullOrWhiteSpace($userMessage)) {
         $CommitMessage = $userMessage
@@ -86,12 +76,9 @@ if ($CommitMessage -eq "Release update" -and !$PublishOnly) {
 }
 
 Write-Info "`nRelease Summary:"
-if (!$PublishOnly) {
-    Write-Info "  Commit Message: $CommitMessage"
-}
+Write-Info "  Commit Message: $CommitMessage"
 Write-Info "  Version Tag: $tagVersion"
 Write-Info "  Skip Build: $($SkipBuild)"
-Write-Info "  Publish Only: $($PublishOnly)"
 Write-Info ""
 
 # Confirm before proceeding
@@ -103,92 +90,45 @@ if ($confirm -eq 'n' -or $confirm -eq 'N') {
 
 Write-Info "`nStarting release process..."
 
-# PART 1: Update source repository (skip if PublishOnly)
-if (!$PublishOnly) {
-    Write-Info "`n=== Part 1: Updating Source Repository ==="
-    
-    # Step 1: Add all changes
-    Write-Info "`n[1/4] Adding all changes..."
-    git add .
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "✓ Changes staged successfully"
-    } else {
-        Write-Error "✗ Failed to stage changes"
-        exit 1
-    }
-    
-    # Step 2: Commit changes
-    Write-Info "`n[2/4] Committing changes..."
-    git commit -m $CommitMessage
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "✓ Changes committed successfully"
-    } else {
-        Write-Warning "⚠ No changes to commit or commit failed"
-    }
-    
-    # Step 3: Push to main branch
-    Write-Info "`n[3/4] Pushing to main branch..."
-    git push origin main
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "✓ Pushed to main branch successfully"
-    } else {
-        Write-Error "✗ Failed to push to main branch"
-        Write-Info "You may need to pull latest changes first: git pull origin main"
-        exit 1
-    }
-    
-    # Step 4: Create and push tag to source repo
-    Write-Info "`n[4/4] Creating and pushing tag $tagVersion to source repo..."
-    
-    # Check if tag already exists
-    $existingTag = git tag -l $tagVersion
-    if ($existingTag) {
-        Write-Warning "Tag $tagVersion already exists in source repo!"
-        $overwrite = Read-Host "Do you want to delete and recreate it? (y/N)"
-        if ($overwrite -eq 'y' -or $overwrite -eq 'Y') {
-            git tag -d $tagVersion
-            git push origin --delete $tagVersion 2>$null
-            Write-Info "Deleted existing tag $tagVersion"
-        } else {
-            Write-Warning "Skipping tag creation in source repo"
-        }
-    }
-    
-    if (!$existingTag -or ($overwrite -eq 'y' -or $overwrite -eq 'Y')) {
-        git tag $tagVersion
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "✓ Tag $tagVersion created in source repo"
-        } else {
-            Write-Error "✗ Failed to create tag"
-            exit 1
-        }
-        
-        git push origin $tagVersion
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "✓ Tag pushed to source repo successfully"
-        } else {
-            Write-Error "✗ Failed to push tag"
-            exit 1
-        }
-    }
+# STEP 1: Commit and push changes
+Write-Info "`n=== Step 1: Committing Changes ==="
+
+Write-Info "Adding all changes..."
+git add .
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to stage changes"
+    exit 1
 }
 
-# PART 2: Build the application
+Write-Info "Committing changes..."
+git commit -m $CommitMessage
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "No changes to commit or commit failed"
+}
+
+Write-Info "Pushing to main branch..."
+git push origin main
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to push to main branch"
+    Write-Info "You may need to pull latest changes first: git pull origin main"
+    exit 1
+}
+
+Write-Success "✓ Changes pushed successfully"
+
+# STEP 2: Build the application
 if (!$SkipBuild) {
-    Write-Info "`n=== Part 2: Building Application ==="
+    Write-Info "`n=== Step 2: Building Application ==="
     
     Write-Info "Building PostBoy $Version..."
-    
-    # No token needed for building since we're using a public releases repo
-    Write-Info "Running: pnpm run make"
     pnpm run make
     
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "✓ Build completed successfully"
-    } else {
-        Write-Error "✗ Build failed"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Build failed"
         exit 1
     }
+    
+    Write-Success "✓ Build completed successfully"
     
     # Find the built files
     $outDir = "out\make"
@@ -199,55 +139,64 @@ if (!$SkipBuild) {
     
     Write-Info "Build artifacts:"
     Get-ChildItem -Path $outDir -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage" | ForEach-Object {
-        Write-Info "  - $($_.FullName)"
+        Write-Info "  - $($_.Name)"
     }
 }
 
-# PART 3: Publish to releases repository
-Write-Info "`n=== Part 3: Publishing to Releases Repository ==="
-
-# Clone or update the releases repository
-if (!(Test-Path $releasesDir)) {
-    Write-Info "Cloning releases repository..."
-    git clone $releasesRepo $releasesDir
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to clone releases repository"
-        Write-Info "Please create the repository first: https://github.com/moodysaroha/postboy-releases"
-        exit 1
-    }
-} else {
-    Write-Info "Updating releases repository..."
-    Push-Location $releasesDir
-    git pull origin main
-    Pop-Location
-}
-
-# Create release using GitHub CLI or API
-Write-Info "`nCreating GitHub release $tagVersion in releases repository..."
+# STEP 3: Create GitHub Release
+Write-Info "`n=== Step 3: Creating GitHub Release ==="
 
 # Check if GitHub CLI is installed
 $ghInstalled = Get-Command gh -ErrorAction SilentlyContinue
-if ($ghInstalled) {
-    Push-Location $releasesDir
-    
-    # Create tag in releases repo
-    git tag $tagVersion 2>$null
-    git push origin $tagVersion 2>$null
-    
-    # Find release artifacts - include ALL Squirrel.Windows files for electron-updater
-    $artifacts = @()
-    if (!$SkipBuild) {
-        $artifacts = Get-ChildItem -Path "..\postboy\out\make" -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage"
+if (!$ghInstalled) {
+    Write-Error "GitHub CLI not found. Please install it from: https://cli.github.com/"
+    Write-Info "After installing gh CLI, run: gh auth login"
+    exit 1
+}
+
+# Check if tag already exists
+$existingTag = git tag -l $tagVersion
+if ($existingTag) {
+    Write-Warning "Tag $tagVersion already exists!"
+    $overwrite = Read-Host "Do you want to delete and recreate it? (y/N)"
+    if ($overwrite -eq 'y' -or $overwrite -eq 'Y') {
+        git tag -d $tagVersion
+        git push origin --delete $tagVersion 2>$null
+        Write-Info "Deleted existing tag $tagVersion"
+    } else {
+        Write-Warning "Skipping release creation"
+        exit 0
     }
-    
-    if ($artifacts.Count -eq 0) {
-        Write-Warning "No release artifacts found. Please build the application first."
-        Pop-Location
-        exit 1
-    }
-    
-    # Create release notes
-    $releaseNotes = @"
+}
+
+# Create and push tag
+Write-Info "Creating tag $tagVersion..."
+git tag $tagVersion
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to create tag"
+    exit 1
+}
+
+git push origin $tagVersion
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to push tag"
+    exit 1
+}
+
+Write-Success "✓ Tag created and pushed"
+
+# Find release artifacts
+$artifacts = @()
+if (!$SkipBuild) {
+    $artifacts = Get-ChildItem -Path "out\make" -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage"
+}
+
+if ($artifacts.Count -eq 0) {
+    Write-Warning "No release artifacts found. Creating release without assets."
+}
+
+# Create release notes
+$releaseNotes = @"
 # PostBoy $Version
 
 ## What's New
@@ -257,11 +206,11 @@ $CommitMessage
 Download the appropriate version for your platform below.
 
 ### Windows
-- **PostBoySetup.exe** - Windows installer (recommended)
-- **postboy-$Version-win32-x64.zip** - Portable version
+- **Setup.exe** - Windows installer (recommended)
+- **.zip** - Portable version
 
 ### macOS
-- **postboy-$Version-darwin-x64.zip** - macOS version
+- **.zip** - macOS version
 
 ### Linux
 - **.deb** - Debian/Ubuntu
@@ -271,55 +220,49 @@ Download the appropriate version for your platform below.
 ## Auto-Update
 This version supports automatic updates. The app will check for updates periodically and notify you when a new version is available.
 "@
-    
-    # Save release notes to temp file
-    $releaseNotesFile = [System.IO.Path]::GetTempFileName()
-    $releaseNotes | Out-File -FilePath $releaseNotesFile -Encoding UTF8
-    
-    # Create the release
-    Write-Info "Creating release with gh CLI..."
-    $ghArgs = @(
-        "release", "create", $tagVersion,
-        "--title", "PostBoy $Version",
-        "--notes-file", $releaseNotesFile,
-        "--target", "main"
-    )
-    
-    # Add artifact paths
-    foreach ($artifact in $artifacts) {
-        $ghArgs += $artifact.FullName
-    }
-    
-    gh @ghArgs
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "✓ Release created successfully"
-    } else {
-        Write-Error "Failed to create release"
-        Pop-Location
-        exit 1
-    }
-    
+
+# Save release notes to temp file
+$releaseNotesFile = [System.IO.Path]::GetTempFileName()
+$releaseNotes | Out-File -FilePath $releaseNotesFile -Encoding UTF8
+
+# Create the release
+Write-Info "Creating GitHub release..."
+$ghArgs = @(
+    "release", "create", $tagVersion,
+    "--title", "PostBoy $Version",
+    "--notes-file", $releaseNotesFile,
+    "--target", "main"
+)
+
+# Add artifact paths
+foreach ($artifact in $artifacts) {
+    $ghArgs += $artifact.FullName
+}
+
+gh @ghArgs
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Success "✓ GitHub release created successfully"
+} else {
+    Write-Error "Failed to create GitHub release"
     # Clean up temp file
     Remove-Item $releaseNotesFile -Force
-    
-    Pop-Location
-} else {
-    Write-Warning "GitHub CLI not found. Please install it from: https://cli.github.com/"
-    Write-Info "Or manually create the release at: https://github.com/moodysaroha/postboy-releases/releases/new"
-    Write-Info ""
-    Write-Info "Upload these files to the release:"
-    Get-ChildItem -Path "out\make" -Recurse -Include "*.exe", "*.nupkg", "*RELEASES*", "*.zip", "*.deb", "*.rpm", "*.dmg", "*.AppImage" | ForEach-Object {
-        Write-Info "  - $($_.Name)"
-    }
+    exit 1
 }
+
+# Clean up temp file
+Remove-Item $releaseNotesFile -Force
 
 Write-Info ""
 Write-Success "========================================="
 Write-Success "     Release $tagVersion Complete! 🚀"
 Write-Success "========================================="
 Write-Info ""
-Write-Info "Source repository tag: https://github.com/moodysaroha/postboy/releases/tag/$tagVersion"
-Write-Info "Public release: https://github.com/moodysaroha/postboy-releases/releases/tag/$tagVersion"
+Write-Info "Release URL: https://github.com/moodysaroha/postboy/releases/tag/$tagVersion"
 Write-Info ""
 Write-Info "Users can now update their PostBoy installations automatically!"
+Write-Info ""
+Write-Info "Next steps:"
+Write-Info "1. Test the auto-update functionality"
+Write-Info "2. Announce the release to users"
+Write-Info "3. Monitor for any update issues"

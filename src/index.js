@@ -135,9 +135,6 @@ const menu = Menu.buildFromTemplate(template);
 
   // Wait for the main window to be ready
   mainWindow.once('ready-to-show', () => {
-    console.log('Main window ready-to-show');
-    
-    // Send ready signal to loading window
     if (loadingWindow && !loadingWindow.isDestroyed()) {
       loadingWindow.webContents.send('app-ready');
     }
@@ -157,19 +154,35 @@ const menu = Menu.buildFromTemplate(template);
           }
         }, 300);
       } else {
-        // Fallback: just show main window if loading window is gone
         mainWindow.maximize();
         mainWindow.show();
       }
-      console.log('Window transition complete');
     }, 800); // Give loading screen time to show "Ready!" status
   });
 };
 
 app.whenReady().then(() => {
+  // Ensure Windows uses a stable AppUserModelID so taskbar/Start icons map to our resources
+  try {
+    const desiredAppId = 'com.moodysaroha.postboy';
+    if (process.platform === 'win32') {
+      const currentId = app.getAppUserModelId && app.getAppUserModelId();
+      if (!currentId || currentId !== desiredAppId) {
+        app.setAppUserModelId(desiredAppId);
+      }
+    }
+  } catch (e) {
+    // no-op if API not available on this platform
+  }
+
   // Initialize auto-updater
   const AppUpdater = require('./updater');
   appUpdater = new AppUpdater();
+  
+  // IPC Handlers
+  ipcMain.handle('get-version', () => {
+    return app.getVersion();
+  });
   
   // First create and show loading window
   createLoadingWindow();

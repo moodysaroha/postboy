@@ -21,5 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Generic modal request (for future use)
   showModal: (options) => {
     return ipcRenderer.invoke('show-modal', options);
+  },
+
+  // Get app version
+  getVersion: () => {
+    return ipcRenderer.invoke('get-version');
   }
 });

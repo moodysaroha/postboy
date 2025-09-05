@@ -61,6 +61,7 @@
           </div>
         </div>
         
+        
         <div class="drag-handle drag-handle-right" data-target="left-sidebar"></div>
       </div>
 
@@ -79,13 +80,24 @@
 
         <div class="request-section">
           <div class="request-line">
-            <select id="method-select" class="method-select">
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-              <option value="PUT">PUT</option>
-              <option value="DELETE">DELETE</option>
-              <option value="PATCH">PATCH</option>
-            </select>
+            <!-- Custom dropdown to replace select -->
+            <div id="method-dropdown" class="custom-dropdown">
+              <div class="dropdown-selected" data-value="GET">
+                <span class="dropdown-text">GET</span>
+                <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="dropdown-options">
+                <div class="dropdown-option" data-value="GET">GET</div>
+                <div class="dropdown-option" data-value="POST">POST</div>
+                <div class="dropdown-option" data-value="PUT">PUT</div>
+                <div class="dropdown-option" data-value="DELETE">DELETE</div>
+                <div class="dropdown-option" data-value="PATCH">PATCH</div>
+                <div class="dropdown-option" data-value="OPTIONS">OPTIONS</div>
+                <div class="dropdown-option" data-value="HEAD">HEAD</div>
+              </div>
+            </div>
             <input type="text" id="url-input" class="url-input" placeholder="Enter request URL" />
             <button id="send-btn" class="send-btn">Send</button>
             <button id="save-request-btn-main" class="send-btn">Save</button>            
@@ -100,7 +112,10 @@
               Body
               <span class="body-indicator" id="body-indicator" style="display: none;"></span>
             </button>
-            <button class="tab-btn" data-tab="auth">Authorization</button>
+            <button class="tab-btn" data-tab="auth">
+              Authorization
+              <span class="body-indicator" id="auth-indicator" style="display: none;"></span>
+            </button>
             <button class="tab-btn" data-tab="headers">
               Headers
               <span class="tab-count" id="headers-count">0</span>
@@ -120,7 +135,14 @@
             </div>
 
             <div id="body-tab" class="tab-pane">
-              <div id="body-input" class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter request body (JSON, XML, etc.)"></div>
+              <div class="body-editor-container">
+                <div class="body-editor-toolbar">
+                  <button id="body-format-json" class="format-btn" title="Format as JSON">Format JSON</button>
+                  <button id="body-toggle-view" class="format-btn" title="Toggle View/Edit">📝</button>
+                </div>
+                <div id="body-input" class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter request body (JSON, XML, etc.)"></div>
+                <div id="body-json-viewer" class="body-json-viewer" style="display: none;"></div>
+              </div>
             </div>
 
             <div id="auth-tab" class="tab-pane">
@@ -152,6 +174,7 @@
             </div>
           </div>
         </div>
+        
       </div>
 
       <!-- Right Sidebar - Response -->
@@ -190,8 +213,8 @@
             Tests
             <span class="tab-count">0 / 0</span>
           </button>
-          <button class="response-tab-btn" data-tab="mock">Mock</button>
-          <button class="response-tab-btn" data-tab="console">Console</button> -->
+          <button class="response-tab-btn" data-tab="mock">Mock</button> -->
+          <button class="response-tab-btn" data-tab="console">Console</button>
         </div>
 
         <!-- Tab Content -->
@@ -240,52 +263,21 @@
           </div>
         </div>
         
+        
         <div class="drag-handle drag-handle-left" data-target="right-sidebar"></div>
       </div>
     </div>
 
-    <!-- Modal for creating new collection -->
-    <div id="new-collection-modal" class="modal" style="display: none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Create New Collection</h3>
-          <button class="modal-close" id="close-collection-modal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <label for="collection-name-input">Collection Name:</label>
-          <input type="text" id="collection-name-input" placeholder="Enter collection name..." />
-        </div>
-        <div class="modal-footer">
-          <button id="cancel-collection" class="modal-btn cancel-btn">Cancel</button>
-          <button id="create-collection" class="modal-btn create-btn">Create</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal for saving request to collection -->
-    <div id="save-request-modal" class="modal" style="display: none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Save Request</h3>
-          <button class="modal-close" id="close-save-modal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <label for="request-name-input">Request Name:</label>
-          <input type="text" id="request-name-input" placeholder="Enter request name..." />
-          
-          <label for="collection-select">Select Collection:</label>
-          <select id="collection-select">
-            <option value="">Select a collection...</option>
-          </select>
-          
-          <div class="modal-actions">
-            <button id="create-new-collection-option" class="link-btn">+ Create New Collection</button>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button id="cancel-save-request" class="modal-btn cancel-btn">Cancel</button>
-          <button id="save-request-confirm" class="modal-btn create-btn">Save</button>
-        </div>
+    <!-- Single Footer -->
+    <div class="app-footer">
+      <div class="footer-content">
+        <span class="footer-text">Collections & History</span>
+        <span class="footer-separator">•</span>
+        <span class="footer-text">Request Builder</span>
+        <span class="footer-separator">•</span>
+        <span class="footer-text">Response Panel</span>
+        <span class="footer-separator">•</span>
+        <span class="footer-text" id="app-version">v...</span>
       </div>
     </div>
 

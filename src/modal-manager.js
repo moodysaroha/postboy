@@ -63,7 +63,7 @@ class ModalManager {
     // Create promise for button clicks
     modalRef.promise = new Promise((resolve) => {
       // Setup button click handlers
-      const buttons = modalElement.querySelectorAll('.modal-button');
+      const buttons = modalElement.querySelectorAll('.modal-btn');
       buttons.forEach((button, index) => {
         button.addEventListener('click', () => {
           resolve({ response: index, button: modalOptions.buttons[index] });
@@ -121,7 +121,7 @@ class ModalManager {
 
     const buttonsHtml = options.buttons.map((buttonText, index) => {
       const isPrimary = index === options.defaultButton;
-      const buttonClass = isPrimary ? 'modal-button primary' : 'modal-button';
+      const buttonClass = isPrimary ? 'modal-btn create-btn' : 'modal-btn cancel-btn';
       const isDestructive = buttonText.toLowerCase().includes('delete') || 
                            buttonText.toLowerCase().includes('remove');
       const destructiveClass = isDestructive ? ' destructive' : '';

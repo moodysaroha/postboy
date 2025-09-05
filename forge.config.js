@@ -5,6 +5,15 @@ module.exports = {
   packagerConfig: {
     asar: true,
     icon: './src/assets/icons/win/icon.ico', // Use explicit .ico extension for Windows
+    executableName: 'postboy',
+    win32metadata: {
+      CompanyName: 'Gaurav Saroha',
+      ProductName: 'PostBoy',
+      FileDescription: 'PostBoy',
+      OriginalFilename: 'postboy.exe',
+      InternalName: 'PostBoy',
+      AppUserModelID: 'com.moodysaroha.postboy',
+    },
     extraResources: [
       './app-update.yml' // Include app-update.yml in the resources folder
     ]
@@ -25,6 +34,8 @@ module.exports = {
         setupExe: 'PostBoySetup.exe',
         noMsi: true,
         setupIcon: require('path').resolve(__dirname, 'src/assets/icons/win/icon.ico'), // Windows installer icon
+        // Supplying iconUrl helps Squirrel set correct Start Menu/Taskbar icons
+        iconUrl: 'https://raw.githubusercontent.com/moodysaroha/postboy/main/src/assets/icons/win/icon.ico',
         loadingGif: undefined,  // Optional: './src/assets/loading.gif' - shows during Windows installation
         // Skip checking for remote releases during build to avoid private repo access issues
         // The auto-updater in the app will handle updates with proper authentication

@@ -16,8 +16,16 @@ class AuthManager {
       authTypeSelect.addEventListener('change', (e) => {
         this.updateAuthContent(e.target.value);
         this.currentAuthType = e.target.value;
+        // Update tab indicators when auth changes
+        if (window.postboy && window.postboy.updateTabIndicators) {
+          window.postboy.updateTabIndicators();
+        }
       });
     }
+  }
+
+  getCurrentAuthType() {
+    return this.currentAuthType;
   }
 
   updateAuthContent(authType) {

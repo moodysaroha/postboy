@@ -25,19 +25,20 @@ class PostBoy {
     this.setupDragResize();
     this.restoreSidebarStates();
     this.setupSidebarTabs();
+    this.setupBodyEditor();
     this.updateTabIndicators();
   }
 
   setupEventListeners() {
-    // Theme toggle removed - dark theme only
-
-    // New tab button
     const newTabBtn = document.querySelector('.new-tab-btn');
     if (newTabBtn) {
       newTabBtn.addEventListener('click', () => {
         this.createNewRequestTab();
       });
     }
+
+    // Setup custom dropdown
+    this.setupCustomDropdown();
 
     // Send request
     document.getElementById('send-btn').addEventListener('click', () => {
@@ -91,6 +92,7 @@ class PostBoy {
     const bodyInput = document.getElementById('body-input');
     bodyInput.addEventListener('input', () => {
       this.highlightBodyJSON();
+      this.updateTabIndicators();
     });
     bodyInput.addEventListener('paste', (e) => {
       e.preventDefault();
@@ -112,6 +114,7 @@ class PostBoy {
       
       // Apply syntax highlighting
       this.highlightBodyJSON();
+      this.updateTabIndicators();
     });
 
 
@@ -159,47 +162,7 @@ class PostBoy {
       });
     }
 
-    // Save Request Modal
-    const saveRequestModal = document.getElementById('save-request-modal');
-    const requestNameInput = document.getElementById('request-name-input');
-    const collectionSelect = document.getElementById('collection-select');
-    const saveRequestConfirmBtn = document.getElementById('save-request-confirm');
-    const cancelSaveRequestBtn = document.getElementById('cancel-save-request');
-    const closeSaveModalBtn = document.getElementById('close-save-modal');
-    const createNewCollectionOptionBtn = document.getElementById('create-new-collection-option');
-
-    // Save request confirm button
-    if (saveRequestConfirmBtn) {
-      saveRequestConfirmBtn.addEventListener('click', () => {
-        this.handleSaveRequest();
-      });
-    }
-
-    // Cancel/Close save request modal
-    [cancelSaveRequestBtn, closeSaveModalBtn].forEach(btn => {
-      if (btn) {
-        btn.addEventListener('click', () => {
-          this.hideSaveRequestModal();
-        });
-      }
-    });
-
-    // Create new collection option
-    if (createNewCollectionOptionBtn) {
-      createNewCollectionOptionBtn.addEventListener('click', () => {
-        this.hideSaveRequestModal();
-        this.showNewCollectionModal();
-      });
-    }
-
-    // Close modal when clicking outside
-    if (saveRequestModal) {
-      saveRequestModal.addEventListener('click', (e) => {
-        if (e.target === saveRequestModal) {
-          this.hideSaveRequestModal();
-        }
-      });
-    }
+    // Save Request Modal functionality is handled by CollectionsManager
 
 
   }
@@ -344,7 +307,7 @@ class PostBoy {
   }
 
   async sendRequest() {
-    const method = document.getElementById('method-select').value;
+    const method = this.getMethodValue();
     const url = document.getElementById('url-input').value.trim();
     
     if (!url) {
@@ -720,15 +683,13 @@ class PostBoy {
     const item = this.history[index];
     if (!item) return;
 
-    // Clear last response data since we're loading a stored request
-    this.lastResponseData = null;
+    this.lastResponseData = item.response || null;
     
-    // Clear collection tracking since this is from history
     this.currentCollectionId = null;
     this.currentCollectionRequestId = null;
 
     // Set method and URL - keep the full URL as stored
-    document.getElementById('method-select').value = item.method;
+    this.setMethodValue(item.method);
     
     // Parse URL to separate base URL and query params
     const url = new URL(item.url);
@@ -753,9 +714,11 @@ class PostBoy {
     const bodyInput = document.getElementById('body-input');
     bodyInput.textContent = item.body || '';
     this.highlightBodyJSON();
+    this.updateTabIndicators(); // Update tab indicators after loading body
 
     // Display previous response
     if (item.response) {
+      this.lastResponseData = item.response;
       this.displayResponse({
         status: item.response.status,
         statusText: item.response.statusText,
@@ -935,6 +898,7 @@ class PostBoy {
       const beautified = JSON.stringify(parsed, null, 2);
       bodyInput.textContent = beautified;
       this.highlightBodyJSON();
+      this.updateTabIndicators(); // Update tab indicators after formatting
     } catch (err) {
       // If it's not valid JSON, just format it nicely
       console.log('Not valid JSON, keeping as is');
@@ -1143,33 +1107,34 @@ class PostBoy {
     
     if (!request) return;
     
-    // Update the request with current data
-    const method = document.getElementById('method-select')?.value;
-    const url = document.getElementById('url-input')?.value.trim();
+    const method = this.getMethodValue();
+    const baseUrl = document.getElementById('url-input')?.value.trim();
     const headers = this.getKeyValuePairs('headers-container');
     const params = this.getKeyValuePairs('params-container');
     const body = document.getElementById('body-input')?.textContent.trim() || '';
     
-    // Get auth data if available
+    let fullUrl = baseUrl;
+    const urlParams = new URLSearchParams(params);
+    if (urlParams.toString()) {
+      fullUrl += (baseUrl.includes('?') ? '&' : '?') + urlParams.toString();
+    }
+    
     let authData = null;
     if (window.authManager) {
       authData = window.authManager.exportAuthData();
     }
     
-    // Update the request object
     request.method = method;
-    request.url = url;
+    request.url = fullUrl;
     request.headers = headers;
     request.params = params;
     request.body = body;
     request.auth = authData;
-    request.response = this.lastResponseData; // Update with latest response
-    request.lastExecuted = new Date().toISOString(); // Track when it was last executed
+    request.response = this.lastResponseData;
+    request.lastExecuted = new Date().toISOString();
     
-    // Save the updated collections
     window.collectionsManager.saveCollections();
     
-    // Show a subtle notification
     this.addConsoleLog(`Request "${request.name}" in collection "${collection.name}" auto-updated with latest response`);
   }
 
@@ -1197,11 +1162,85 @@ class PostBoy {
       const hasBody = bodyInput.textContent.trim().length > 0;
       bodyIndicator.style.display = hasBody ? 'inline-block' : 'none';
     }
+
+    // Update auth indicator
+    const authIndicator = document.getElementById('auth-indicator');
+    if (authIndicator && window.authManager) {
+      const authType = window.authManager.getCurrentAuthType();
+      const hasAuth = authType && authType !== 'none';
+      authIndicator.style.display = hasAuth ? 'inline-block' : 'none';
+    }
+  }
+
+  setupBodyEditor() {
+    const formatJsonBtn = document.getElementById('body-format-json');
+    const toggleViewBtn = document.getElementById('body-toggle-view');
+    const bodyInput = document.getElementById('body-input');
+    const bodyJsonViewer = document.getElementById('body-json-viewer');
+    
+    let isViewerMode = false;
+
+    // Format JSON button
+    if (formatJsonBtn) {
+      formatJsonBtn.addEventListener('click', () => {
+        this.beautifyJSON(); // Use existing method that includes syntax highlighting
+      });
+    }
+
+    // Toggle view button
+    if (toggleViewBtn) {
+      toggleViewBtn.addEventListener('click', () => {
+        const content = bodyInput.textContent.trim();
+        
+        if (!isViewerMode) {
+          // Switch to viewer mode
+          if (content) {
+            try {
+              const parsed = JSON.parse(content);
+              this.renderBodyJson(parsed);
+              bodyInput.style.display = 'none';
+              bodyJsonViewer.style.display = 'block';
+              toggleViewBtn.textContent = '📝';
+              toggleViewBtn.title = 'Switch to Edit Mode';
+              isViewerMode = true;
+            } catch (e) {
+              // Not valid JSON, can't switch to viewer
+              console.warn('Invalid JSON for viewer mode');
+            }
+          }
+        } else {
+          // Switch to edit mode
+          bodyInput.style.display = 'block';
+          bodyJsonViewer.style.display = 'none';
+          toggleViewBtn.textContent = '👁️';
+          toggleViewBtn.title = 'Switch to View Mode';
+          isViewerMode = false;
+        }
+      });
+    }
+  }
+
+  renderBodyJson(jsonData) {
+    const bodyJsonViewer = document.getElementById('body-json-viewer');
+    if (!bodyJsonViewer) return;
+
+    // Clear existing content
+    bodyJsonViewer.innerHTML = '';
+    
+    // Configure renderjson for body editor
+    renderjson.set_icons('▶', '▼')
+             .set_show_to_level('all')
+             .set_max_string_length(1000);
+    
+    // Render the JSON
+    const jsonElement = renderjson(jsonData);
+    jsonElement.classList.add('renderjson-container');
+    bodyJsonViewer.appendChild(jsonElement);
   }
 
   createNewRequestTab() {
     // Clear the form for a new request
-    document.getElementById('method-select').value = 'GET';
+    this.setMethodValue('GET');
     document.getElementById('url-input').value = '';
     
     // Clear all key-value pairs
@@ -1213,6 +1252,9 @@ class PostBoy {
     if (bodyInput) {
       bodyInput.textContent = '';
     }
+    
+    // Update all tab indicators after clearing
+    this.updateTabIndicators();
     
     // Clear auth
     if (window.authManager) {
@@ -1244,6 +1286,94 @@ class PostBoy {
     this.addConsoleLog('New request tab created');
   }
 
+  setupCustomDropdown() {
+    const dropdown = document.getElementById('method-dropdown');
+    const selected = dropdown?.querySelector('.dropdown-selected');
+    const options = dropdown?.querySelector('.dropdown-options');
+    
+    if (!dropdown || !selected || !options) return;
+
+    // Position dropdown options when opening
+    const positionDropdown = () => {
+      const rect = selected.getBoundingClientRect();
+      options.style.top = `${rect.bottom}px`;
+      options.style.right = `${window.innerWidth - rect.right}px`;
+      options.style.left = 'auto';
+      options.style.minWidth = `${Math.max(rect.width, 200)}px`;
+    };
+
+    // Click on selected to toggle dropdown
+    selected.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.classList.contains('open');
+      
+      if (!isOpen) {
+        positionDropdown();
+      }
+      
+      dropdown.classList.toggle('open');
+    });
+
+    // Click on option to select it
+    options.addEventListener('click', (e) => {
+      const option = e.target.closest('.dropdown-option');
+      if (!option) return;
+      
+      const value = option.dataset.value;
+      this.setMethodValue(value);
+      dropdown.classList.remove('open');
+    });
+
+    // Click outside to close dropdown
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+
+    // Reposition on window resize
+    window.addEventListener('resize', () => {
+      if (dropdown.classList.contains('open')) {
+        positionDropdown();
+      }
+    });
+
+    // Keyboard navigation
+    dropdown.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        dropdown.classList.remove('open');
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        if (document.activeElement === selected) {
+          e.preventDefault();
+          const isOpen = dropdown.classList.contains('open');
+          if (!isOpen) {
+            positionDropdown();
+          }
+          dropdown.classList.toggle('open');
+        }
+      }
+    });
+  }
+
+  setMethodValue(value) {
+    // Update custom dropdown display
+    const dropdown = document.getElementById('method-dropdown');
+    const selected = dropdown?.querySelector('.dropdown-selected');
+    const text = dropdown?.querySelector('.dropdown-text');
+    
+    if (selected && text) {
+      selected.dataset.value = value;
+      text.textContent = value;
+    }
+  }
+
+  getMethodValue() {
+    // Get value from custom dropdown
+    const dropdown = document.getElementById('method-dropdown');
+    const selected = dropdown?.querySelector('.dropdown-selected');
+    return selected?.dataset.value || 'GET';
+  }
+
   countKeyValuePairs(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return 0;
@@ -1260,8 +1390,27 @@ class PostBoy {
   }
 }
 
+// Load and display app version
+async function loadAppVersion() {
+  try {
+    if (window.electronAPI && window.electronAPI.getVersion) {
+      const version = await window.electronAPI.getVersion();
+      const versionElement = document.getElementById('app-version');
+      if (versionElement) {
+        versionElement.textContent = `v${version}`;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load app version:', error);
+    // Fallback: keep the placeholder text
+  }
+}
+
 // Initialize function to avoid duplication
 function initializeApp() {
+  // Load and display app version
+  loadAppVersion();
+  
   // Initialize modal manager
   window.modalManager = new ModalManager();
   
@@ -1295,3 +1444,21 @@ if (document.readyState === 'loading') {
   // Document already loaded, initialize immediately
   initializeApp();
 }
+
+// Ensure input elements have proper cursor behavior after full initialization
+function ensureInputCursorBehavior() {
+  // Force cursor styles on all text inputs after app loads
+  const textInputs = document.querySelectorAll('input[type="text"], input[type="password"], textarea, [contenteditable="true"]');
+  textInputs.forEach(input => {
+    if (input.getAttribute('contenteditable') === 'true') {
+      input.style.cursor = 'text';
+    } else {
+      input.style.cursor = 'text';
+    }
+  });
+}
+
+// Run cursor fix after a short delay to ensure everything is loaded
+setTimeout(() => {
+  ensureInputCursorBehavior();
+}, 1000);

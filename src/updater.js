@@ -20,9 +20,8 @@ class AppUpdater {
         this.mainWindow.webContents.send('update-notification', data);
         
         // For messages that don't need a response, resolve immediately
-        if (data.type === 'checking' || data.type === 'dev-mode' || 
-            data.type === 'not-available' || data.type === 'error' || 
-            data.type === 'timeout') {
+        if (data.type === 'checking' || data.type === 'not-available' || 
+            data.type === 'error' || data.type === 'timeout') {
           resolve(null);
         } else {
           // For messages that need a response, wait for it
@@ -101,15 +100,6 @@ class AppUpdater {
         });
         return null;
       
-      case 'dev-mode':
-        await dialog.showMessageBox({
-          type: 'info',
-          title: 'Development Mode',
-          message: 'Updates are not available in development mode.',
-          buttons: ['OK']
-        });
-        return null;
-      
       case 'checking':
         // Can't really show a non-blocking dialog with native dialogs
         console.log('Checking for updates...');
@@ -121,30 +111,33 @@ class AppUpdater {
   }
 
   setupUpdater() {
-    // Only enable updates in production (packaged) builds
-    if (!app.isPackaged) {
-      console.log('Updates disabled in development mode');
-      return;
-    }
-
     // Configure electron-updater for GitHub releases
     autoUpdater.autoDownload = false; // Don't auto-download, let user choose
     autoUpdater.autoInstallOnAppQuit = true;
+
+    // Enable debug logging for electron-updater
+    try {
+      const log = require('electron-log');
+      log.transports.file.level = 'debug';
+      autoUpdater.logger = log;
+      log.info('Updater logging enabled');
+    } catch (e) {
+      console.warn('electron-log not available; updater logs limited');
+    }
     
-    // Use public releases repository - no authentication needed
+    // Use main postboy repository for releases - no authentication needed
     autoUpdater.setFeedURL({
       provider: 'github',
       owner: 'moodysaroha',
-      repo: 'postboy-releases', // Public repo with only releases, no source code
-      private: false
-      // No token needed for public repo
+      repo: 'postboy',
+      private: false,
+      vPrefixedTagName: true
     });
 
-    console.log('Using public releases repository - no authentication required');
+    console.log('Using main repository for updates - no authentication required (github:moodysaroha/postboy)');
 
     this.setupEventHandlers();
     
-    // Check for updates after app is ready
     setTimeout(() => {
       this.checkForUpdates();
     }, 10000); // Check after 10 seconds
@@ -233,7 +226,7 @@ class AppUpdater {
       // Parse the error message for better user feedback
       let userMessage = error.message;
       if (error.message.includes('404') || error.message.includes('Not Found')) {
-        userMessage = 'Cannot access the update server. This could be because:\n\n1. No releases have been published yet\n2. Network connectivity issues\n3. The releases repository is temporarily unavailable\n\nPlease try again later or check your internet connection.';
+        userMessage = 'Cannot access the update server.' + error.message;
       } else if (error.message.includes('ENOTFOUND') || error.message.includes('ETIMEDOUT')) {
         userMessage = 'Cannot reach the update server. Please check your internet connection and try again.';
       }
@@ -251,25 +244,13 @@ class AppUpdater {
 
   checkForUpdates() {
     try {
-      if (app.isPackaged) {
-        autoUpdater.checkForUpdates();
-      } else {
-        console.log('Skipping update check in development mode');
-      }
+      autoUpdater.checkForUpdates();
     } catch (error) {
       console.error('Error checking for updates:', error);
     }
   }
 
   checkForUpdatesManual() {
-    if (!app.isPackaged) {
-      this.sendToRenderer({
-        type: 'dev-mode',
-        data: {}
-      });
-      return;
-    }
-
     // Set flag to indicate this is a manual check
     this.isManualCheck = true;
     
@@ -282,12 +263,15 @@ class AppUpdater {
           data: {}
         });
       }
-    }, 30000); // 30 second timeout
+    }, 120000); // 120 second timeout for slow networks
     
     // Store timeout ID to clear it if we get a response
     this.updateCheckTimeout = timeoutId;
     
     // Show checking notification
+    try {
+      console.log('[Updater] Manual check started. Current version:', app.getVersion());
+    } catch (_) {}
     this.sendToRenderer({
       type: 'checking',
       data: {}

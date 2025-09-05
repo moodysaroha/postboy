@@ -32,81 +32,39 @@ class CollectionsManager {
   }
 
   setupModalEventListeners() {
-    // New Collection Modal
-    const createCollectionBtn = document.getElementById('create-collection');
-    const cancelCollectionBtn = document.getElementById('cancel-collection');
-    const closeCollectionModalBtn = document.getElementById('close-collection-modal');
+    // No HTML modal event listeners needed - using modal-manager now
+  }
 
-    if (createCollectionBtn) {
-      createCollectionBtn.addEventListener('click', () => {
-        this.handleCreateCollection();
-      });
-    }
+  async createNewCollection() {
+    const modalContent = `
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Collection Name:</label>
+        <input type="text" id="new-collection-name" placeholder="Enter collection name..." 
+               style="width: 100%; padding: 8px; border: 1px solid #444; border-radius: 4px; background: #2b2d31; color: #f2f3f5;">
+      </div>
+    `;
 
-    [cancelCollectionBtn, closeCollectionModalBtn].forEach(btn => {
-      if (btn) {
-        btn.addEventListener('click', () => {
-          this.hideNewCollectionModal();
-        });
-      }
+    const result = await window.modalManager.showModal({
+      title: 'Create New Collection',
+      message: modalContent,
+      buttons: ['Create', 'Cancel'],
+      defaultButton: 0,
+      cancelable: true
     });
-
-    // Enter key in collection name input
-    const collectionNameInput = document.getElementById('collection-name-input');
-    if (collectionNameInput) {
-      collectionNameInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          this.handleCreateCollection();
-        }
-      });
-    }
-
-    // Save Request Modal
-    const saveRequestConfirmBtn = document.getElementById('save-request-confirm');
-    const cancelSaveRequestBtn = document.getElementById('cancel-save-request');
-    const closeSaveModalBtn = document.getElementById('close-save-modal');
-
-    if (saveRequestConfirmBtn) {
-      saveRequestConfirmBtn.addEventListener('click', () => {
-        this.handleSaveRequest();
-      });
-    }
-
-    [cancelSaveRequestBtn, closeSaveModalBtn].forEach(btn => {
-      if (btn) {
-        btn.addEventListener('click', () => {
-          this.hideSaveRequestModal();
-        });
+    
+    if (result.response === 0) {
+      const name = document.getElementById('new-collection-name')?.value.trim();
+      if (name) {
+        this.handleCreateCollection(name);
+      } else {
+        await window.modalManager.showWarning('Collection Name Required', 'Please enter a collection name');
+        return this.createNewCollection();
       }
-    });
-  }
-
-  createNewCollection() {
-    this.showNewCollectionModal();
-  }
-
-  showNewCollectionModal() {
-    const modal = document.getElementById('new-collection-modal');
-    const input = document.getElementById('collection-name-input');
-    
-    if (input) input.value = '';
-    if (modal) {
-      modal.style.display = 'flex';
-      setTimeout(() => input?.focus(), 100);
     }
   }
 
-  hideNewCollectionModal() {
-    const modal = document.getElementById('new-collection-modal');
-    if (modal) modal.style.display = 'none';
-  }
-
-  handleCreateCollection() {
-    const input = document.getElementById('collection-name-input');
-    const name = input?.value.trim();
-    
+  handleCreateCollection(name) {
     if (!name) {
-      input?.focus();
       return;
     }
 
@@ -121,84 +79,124 @@ class CollectionsManager {
     this.collections.unshift(collection);
     this.saveCollections();
     this.renderCollections();
-    this.hideNewCollectionModal();
   }
 
-  saveCurrentRequest() {
-    const method = document.getElementById('method-select')?.value;
+  async saveCurrentRequest() {
+    const method = window.postboy.getMethodValue();
     const url = document.getElementById('url-input')?.value.trim();
     
     if (!url) {
-      alert('Please enter a URL first');
+      await window.modalManager.showWarning('URL Required', 'Please enter a URL first');
       return;
     }
 
     this.showSaveRequestModal(method, url);
   }
 
-  showSaveRequestModal(method, url) {
-    const modal = document.getElementById('save-request-modal');
-    const requestNameInput = document.getElementById('request-name-input');
-    const collectionSelect = document.getElementById('collection-select');
+  async showSaveRequestModal(method, url) {
+    const defaultName = `${method} ${url.split('/').pop() || 'Request'}`;
     
-    // Set default request name
-    if (requestNameInput) {
-      requestNameInput.value = `${method} ${url.split('/').pop() || 'Request'}`;
-    }
-    
-    // Populate collection select
-    if (collectionSelect) {
-      collectionSelect.innerHTML = '<option value="">Select a collection...</option>';
+    if (this.collections.length === 0) {
+      const createFirst = await window.modalManager.confirm(
+        'No Collections',
+        'You need to create a collection first.',
+        'Would you like to create one now?'
+      );
       
-      if (this.collections.length === 0) {
-        collectionSelect.innerHTML = '<option value="">No collections available</option>';
-        collectionSelect.disabled = true;
-      } else {
-        collectionSelect.disabled = false;
-        this.collections.forEach((collection, index) => {
-          const option = document.createElement('option');
-          option.value = index;
-          option.textContent = collection.name;
-          collectionSelect.appendChild(option);
+      if (createFirst) {
+        await this.createNewCollection();
+      }
+      return;
+    }
+
+    const collectionOptions = this.collections.map((collection, index) => 
+      `<option value="${index}">${collection.name}</option>`
+    ).join('');
+
+    const modalContent = `
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Request Name:</label>
+          <input type="text" id="save-request-name" value="${defaultName}" 
+                 style="width: 100%; padding: 8px; border: 1px solid #444; border-radius: 4px; background: #2b2d31; color: #f2f3f5;">
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Collection:</label>
+          <select id="save-collection-select" 
+                  style="width: 100%; padding: 8px; border: 1px solid #444; border-radius: 4px; background: #2b2d31; color: #f2f3f5;">
+            <option value="">Select a collection...</option>
+            ${collectionOptions}
+          </select>
+        </div>
+        <div>
+          <button id="create-new-collection-btn" 
+                  style="background: none; border: none; color: #00a8fc; text-decoration: underline; cursor: pointer;">
+            + Create New Collection
+          </button>
+        </div>
+      </div>
+    `;
+
+    const modalPromise = window.modalManager.showModal({
+      title: 'Save Request',
+      message: modalContent,
+      buttons: ['Save', 'Cancel'],
+      defaultButton: 0,
+      cancelable: true
+    });
+
+    // Add event listener for the create new collection button after modal is shown
+    setTimeout(() => {
+      const createBtn = document.getElementById('create-new-collection-btn');
+      if (createBtn) {
+        createBtn.addEventListener('click', async () => {
+          // Close the current modal first
+          const activeModal = document.querySelector('.discord-modal');
+          if (activeModal) {
+            activeModal.remove();
+          }
+          
+          // Create new collection
+          await this.createNewCollection();
+          
+          // Restart the save request process
+          this.showSaveRequestModal(method, url);
         });
       }
-    }
-    
-    if (modal) {
-      modal.style.display = 'flex';
-      setTimeout(() => requestNameInput?.focus(), 100);
+    }, 100);
+
+    const result = await modalPromise;
+
+    if (result.response === 0) {
+      const requestName = document.getElementById('save-request-name')?.value.trim();
+      const collectionIndex = parseInt(document.getElementById('save-collection-select')?.value);
+      
+      if (!requestName) {
+        await window.modalManager.showWarning('Request Name Required', 'Please enter a request name');
+        return this.showSaveRequestModal(method, url);
+      }
+      
+      if (isNaN(collectionIndex)) {
+        await window.modalManager.showWarning('Collection Required', 'Please select a collection');
+        return this.showSaveRequestModal(method, url);
+      }
+
+      this.handleSaveRequest(requestName, collectionIndex);
     }
   }
 
-  hideSaveRequestModal() {
-    const modal = document.getElementById('save-request-modal');
-    if (modal) modal.style.display = 'none';
-  }
-
-  handleSaveRequest() {
-    const requestNameInput = document.getElementById('request-name-input');
-    const collectionSelect = document.getElementById('collection-select');
-    
-    const requestName = requestNameInput?.value.trim();
-    const collectionIndex = parseInt(collectionSelect?.value);
-    
+  handleSaveRequest(requestName, collectionIndex) {
     if (!requestName) {
-      alert('Please enter a request name');
-      requestNameInput?.focus();
       return;
     }
     
     if (isNaN(collectionIndex) || collectionIndex < 0 || collectionIndex >= this.collections.length) {
-      alert('Please select a collection');
-      collectionSelect?.focus();
       return;
     }
 
-    // Get current request data
-    const method = document.getElementById('method-select')?.value;
-    const url = document.getElementById('url-input')?.value.trim();
+    const method = window.postboy.getMethodValue();
+    const baseUrl = document.getElementById('url-input')?.value.trim();
     
-    // Get headers, params, and body
     let headers = {};
     let params = {};
     let body = '';
@@ -209,13 +207,17 @@ class CollectionsManager {
       body = document.getElementById('body-input')?.textContent.trim() || '';
     }
     
-    // Get auth data if auth manager exists
+    let fullUrl = baseUrl;
+    const urlParams = new URLSearchParams(params);
+    if (urlParams.toString()) {
+      fullUrl += (baseUrl.includes('?') ? '&' : '?') + urlParams.toString();
+    }
+    
     let authData = null;
     if (window.authManager) {
       authData = window.authManager.exportAuthData();
     }
 
-    // Use the last response data from sendRequest
     let responseData = null;
     if (window.postboy) {
       responseData = window.postboy.lastResponseData;
@@ -225,19 +227,18 @@ class CollectionsManager {
       id: Date.now().toString(),
       name: requestName,
       method,
-      url,
+      url: fullUrl,
       headers,
       params,
       body,
       auth: authData,
-      response: responseData, // Store response data if available
+      response: responseData,
       created: new Date().toISOString()
     };
 
     this.collections[collectionIndex].requests.push(request);
     this.saveCollections();
     this.renderCollections();
-    this.hideSaveRequestModal();
     
     // Log success
     if (window.postboy && window.postboy.addConsoleLog) {
@@ -263,8 +264,12 @@ class CollectionsManager {
       const requestsHtml = collection.requests.map(request => `
         <div class="collection-request" data-request-id="${request.id}" data-collection-id="${collection.id}">
           <div class="method ${request.method.toLowerCase()}">${request.method}</div>
-          <div class="name">${request.name}</div>
+          <div class="name">
+            <span class="request-name-text" data-request-id="${request.id}" data-collection-id="${collection.id}">${request.name}</span>
+            <input class="request-name-input" data-request-id="${request.id}" data-collection-id="${collection.id}" value="${request.name}" style="display: none;" />
+          </div>
           <div class="request-actions">
+            <button class="request-action-btn rename-request-btn" data-request-id="${request.id}" data-collection-id="${collection.id}" title="Rename Request">✏️</button>
             <button class="request-action-btn delete-request-btn" data-request-id="${request.id}" data-collection-id="${collection.id}" title="Delete Request">🗑️</button>
           </div>
         </div>
@@ -339,6 +344,17 @@ class CollectionsManager {
       });
     });
 
+    // Rename request buttons
+    document.querySelectorAll('.rename-request-btn').forEach(renameBtn => {
+      renameBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering the request click
+        
+        const requestId = renameBtn.getAttribute('data-request-id');
+        const collectionId = renameBtn.getAttribute('data-collection-id');
+        this.startRenameRequest(collectionId, requestId);
+      });
+    });
+
     // Collection name inputs (for inline editing)
     document.querySelectorAll('.collection-name-input').forEach(input => {
       input.addEventListener('keypress', (e) => {
@@ -351,6 +367,27 @@ class CollectionsManager {
 
       input.addEventListener('blur', (e) => {
         this.finishRenameCollection(input.getAttribute('data-collection-id'), input.value);
+      });
+    });
+
+    // Request name inputs (for inline editing)
+    document.querySelectorAll('.request-name-input').forEach(input => {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const collectionId = input.getAttribute('data-collection-id');
+          const requestId = input.getAttribute('data-request-id');
+          this.finishRenameRequest(collectionId, requestId, input.value);
+        } else if (e.key === 'Escape') {
+          const collectionId = input.getAttribute('data-collection-id');
+          const requestId = input.getAttribute('data-request-id');
+          this.cancelRenameRequest(collectionId, requestId);
+        }
+      });
+
+      input.addEventListener('blur', (e) => {
+        const collectionId = input.getAttribute('data-collection-id');
+        const requestId = input.getAttribute('data-request-id');
+        this.finishRenameRequest(collectionId, requestId, input.value);
       });
     });
   }
@@ -371,70 +408,52 @@ class CollectionsManager {
     const request = collection.requests.find(r => r.id === requestId);
     if (!request) return;
 
-    // Clear last response data since we're loading a stored request
-    if (window.postboy) {
-      window.postboy.lastResponseData = null;
-      // Track that this request is from a collection for auto-save
-      window.postboy.currentCollectionId = collectionId;
-      window.postboy.currentCollectionRequestId = requestId;
-    }
+    if (!window.postboy) return;
 
-    // Load request data into form
-    const methodSelect = document.getElementById('method-select');
-    const urlInput = document.getElementById('url-input');
-    
-    if (methodSelect) methodSelect.value = request.method;
+    // Track that this request is from a collection for auto-save
+    window.postboy.currentCollectionId = collectionId;
+    window.postboy.currentCollectionRequestId = requestId;
+
+    // Set method and URL - keep the full URL as stored
+    window.postboy.setMethodValue(request.method);
     
     // Parse URL to separate base URL and query params
-    try {
-      const url = new URL(request.url);
-      const baseUrl = `${url.protocol}//${url.host}${url.pathname}`;
-      if (urlInput) urlInput.value = baseUrl;
-      
-      // Extract URL params
-      const urlParams = {};
-      url.searchParams.forEach((value, key) => {
-        urlParams[key] = value;
-      });
-      
-      // Merge URL params with stored params
-      const allParams = { ...urlParams, ...(request.params || {}) };
-      if (window.postboy) {
-        window.postboy.setKeyValuePairs('params-container', allParams);
-      }
-    } catch (err) {
-      // If URL parsing fails, use as-is
-      if (urlInput) urlInput.value = request.url;
-      if (window.postboy && request.params) {
-        window.postboy.setKeyValuePairs('params-container', request.params);
-      }
-    }
+    const url = new URL(request.url);
+    const baseUrl = `${url.protocol}//${url.host}${url.pathname}`;
     
-    if (window.postboy && request.headers) {
-      window.postboy.setKeyValuePairs('headers-container', request.headers);
-    }
+    document.getElementById('url-input').value = baseUrl;
+
+    // Set headers
+    window.postboy.setKeyValuePairs('headers-container', request.headers || {});
+
+    // Extract and set params from URL
+    const urlParams = {};
+    url.searchParams.forEach((value, key) => {
+      urlParams[key] = value;
+    });
     
+    // Merge URL params with stored params (stored params take precedence)
+    const allParams = { ...urlParams, ...(request.params || {}) };
+    window.postboy.setKeyValuePairs('params-container', allParams);
+
+    // Set body
     const bodyInput = document.getElementById('body-input');
-    if (bodyInput) {
-      bodyInput.textContent = request.body || '';
-      if (window.postboy) {
-        window.postboy.highlightBodyJSON();
-      }
+    bodyInput.textContent = request.body || '';
+    window.postboy.highlightBodyJSON();
+    window.postboy.updateTabIndicators();
+
+    // Load auth data if available
+    if (request.auth && window.authManager) {
+      window.authManager.setAuthData(request.auth.type, request.auth.data);
     }
 
-    // Display stored response if available
-    if (request.response && window.postboy) {
+    if (request.response) {
       window.postboy.displayResponse({
         status: request.response.status,
         statusText: request.response.statusText,
         ok: request.response.status < 400,
         headers: new Map(Object.entries(request.response.headers || {}))
       }, request.response.data, request.response.responseTime, request.created);
-    }
-
-    // Load auth data if available
-    if (request.auth && window.authManager) {
-      window.authManager.setAuthData(request.auth.type, request.auth.data);
     }
   }
 
@@ -492,6 +511,65 @@ class CollectionsManager {
     nameText.style.display = 'inline-block';
   }
 
+  startRenameRequest(collectionId, requestId) {
+    const nameText = document.querySelector(`.request-name-text[data-request-id="${requestId}"][data-collection-id="${collectionId}"]`);
+    const nameInput = document.querySelector(`.request-name-input[data-request-id="${requestId}"][data-collection-id="${collectionId}"]`);
+    
+    if (!nameText || !nameInput) return;
+
+    // Hide text, show input
+    nameText.style.display = 'none';
+    nameInput.style.display = 'inline-block';
+    nameInput.focus();
+    nameInput.select();
+  }
+
+  finishRenameRequest(collectionId, requestId, newName) {
+    const collection = this.collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    const request = collection.requests.find(r => r.id === requestId);
+    if (!request) return;
+
+    const nameText = document.querySelector(`.request-name-text[data-request-id="${requestId}"][data-collection-id="${collectionId}"]`);
+    const nameInput = document.querySelector(`.request-name-input[data-request-id="${requestId}"][data-collection-id="${collectionId}"]`);
+    
+    if (!nameText || !nameInput) return;
+
+    // Validate name
+    const trimmedName = newName.trim();
+    if (trimmedName && trimmedName !== request.name) {
+      request.name = trimmedName;
+      this.saveCollections();
+      this.renderCollections();
+      if (window.postboy) {
+        window.postboy.addConsoleLog(`Request renamed to "${trimmedName}"`);
+      }
+    } else {
+      // Hide input, show text
+      nameInput.style.display = 'none';
+      nameText.style.display = 'inline-block';
+    }
+  }
+
+  cancelRenameRequest(collectionId, requestId) {
+    const collection = this.collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    const request = collection.requests.find(r => r.id === requestId);
+    if (!request) return;
+
+    const nameText = document.querySelector(`.request-name-text[data-request-id="${requestId}"][data-collection-id="${collectionId}"]`);
+    const nameInput = document.querySelector(`.request-name-input[data-request-id="${requestId}"][data-collection-id="${collectionId}"]`);
+    
+    if (!nameText || !nameInput) return;
+
+    // Reset input value and hide it
+    nameInput.value = request.name;
+    nameInput.style.display = 'none';
+    nameText.style.display = 'inline-block';
+  }
+
   deleteCollectionRequest(collectionId, requestId) {
     const collection = this.collections.find(c => c.id === collectionId);
     if (!collection) return;
@@ -534,3 +612,4 @@ class CollectionsManager {
 
 // Export for use in other modules
 window.CollectionsManager = CollectionsManager;
+

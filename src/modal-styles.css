@@ -240,6 +240,18 @@
   transform: scale(0.98);
 }
 
+.modal-btn {
+  padding: 10px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 80px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
 /* Progress modal styles */
 .modal-progress {
   margin: 16px 0;

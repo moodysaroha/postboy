@@ -1,7 +1,7 @@
 {
   "name": "postboy",
   "productName": "postboy",
-  "version": "0.0.14",
+  "version": "0.0.2",
   "description": "A minimal PostBoy built with Electron for API testing",
   "main": "src/index.js",
   "homepage": "https://github.com/moodysaroha/postboy",
@@ -23,6 +23,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "electron-log": "^5.4.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.1.7",
     "js-yaml": "^4.1.0"

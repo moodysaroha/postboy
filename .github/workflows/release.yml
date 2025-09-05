@@ -1,11 +1,9 @@
 name: Release
 
-# Disabled - we now build locally and publish to public releases repo
-# To re-enable: uncomment the 'on' section below
-# on:
-#   push:
-#     tags:
-#       - 'v*.*.*'
+on:
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   release:
