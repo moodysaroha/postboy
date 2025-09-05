@@ -230,11 +230,10 @@ class ModalManager {
 
     switch (type) {
       case 'checking':
-        return this.showInfo(
-          'Checking for Updates',
-          'Checking for updates...',
-          'You will be notified when the check is complete.'
-        );
+        // Don't show a blocking modal for checking status
+        // Just log it - the user will be notified when check is complete
+        console.log('Checking for updates...');
+        return null;
 
       case 'available':
         return this.showModal({
