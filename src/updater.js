@@ -176,7 +176,20 @@ class AppUpdater {
             type: 'download-started',
             data: { version: info.version }
           });
-          autoUpdater.downloadUpdate();
+          
+          // Start the download with error handling
+          console.log('Starting download...');
+          autoUpdater.downloadUpdate()
+            .then(() => {
+              console.log('Download started successfully');
+            })
+            .catch((error) => {
+              console.error('Failed to start download:', error);
+              this.sendToRenderer({
+                type: 'error',
+                data: { message: `Failed to download update: ${error.message}` }
+              });
+            });
         } else {
           console.log('User chose to skip update');
         }
@@ -204,7 +217,7 @@ class AppUpdater {
       let message = `Download speed: ${Math.round(progressObj.bytesPerSecond / 1024)} KB/s`;
       message += ` - Downloaded ${Math.round(progressObj.percent)}%`;
       message += ` (${Math.round(progressObj.transferred / 1024 / 1024)} MB of ${Math.round(progressObj.total / 1024 / 1024)} MB)`;
-      console.log(message);
+      console.log('[DOWNLOAD PROGRESS]', message);
       
       // Send progress to renderer to show download status
       this.sendToRenderer({
