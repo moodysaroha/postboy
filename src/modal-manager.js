@@ -230,12 +230,12 @@ class ModalManager {
 
     switch (type) {
       case 'checking':
-        // Don't show a blocking modal for checking status
-        // Just log it - the user will be notified when check is complete
-        console.log('Checking for updates...');
+        // Create a small loading indicator in the bottom right
+        this.showCheckingIndicator();
         return null;
 
       case 'available':
+        this.hideCheckingIndicator();
         return this.showModal({
           type: 'success',
           title: 'Update Available',
@@ -246,6 +246,7 @@ class ModalManager {
         });
 
       case 'not-available':
+        this.hideCheckingIndicator();
         return this.showInfo(
           'No Updates Available',
           'PostBoy is up to date!',
@@ -276,6 +277,7 @@ class ModalManager {
         });
 
       case 'error':
+        this.hideCheckingIndicator();
         return this.showError(
           'Update Error',
           'An error occurred while checking for updates.',
@@ -283,6 +285,7 @@ class ModalManager {
         );
 
       case 'timeout':
+        this.hideCheckingIndicator();
         return this.showWarning(
           'Update Check Timeout',
           'Update check is taking longer than expected.',
@@ -297,6 +300,67 @@ class ModalManager {
 
       default:
         return null;
+    }
+  }
+
+  showCheckingIndicator() {
+    // Create a small loading indicator
+    if (!this.checkingIndicator) {
+      this.checkingIndicator = document.createElement('div');
+      this.checkingIndicator.id = 'update-checking-indicator';
+      this.checkingIndicator.innerHTML = `
+        <style>
+          #update-checking-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+          }
+          
+          @keyframes slideIn {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+          
+          #update-checking-indicator .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-secondary);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+          
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        </style>
+        <div class="spinner"></div>
+        <span>Checking for updates...</span>
+      `;
+      document.body.appendChild(this.checkingIndicator);
+    }
+  }
+
+  hideCheckingIndicator() {
+    if (this.checkingIndicator) {
+      this.checkingIndicator.remove();
+      this.checkingIndicator = null;
     }
   }
 }
