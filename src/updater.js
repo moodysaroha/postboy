@@ -125,8 +125,29 @@ class AppUpdater {
       console.warn('electron-log not available; updater logs limited');
     }
     
-    // Configuration will be read from app-update.yml
-    console.log('Using app-update.yml configuration for updates (github:moodysaroha/postboy)');
+    // Set the feed URL manually for better control
+    const { app } = require('electron');
+    const path = require('path');
+    
+    // Try to find app-update.yml in different locations
+    const possiblePaths = [
+      path.join(process.resourcesPath, 'app-update.yml'),
+      path.join(app.getAppPath(), 'app-update.yml'),
+      path.join(process.resourcesPath, '..', 'app-update.yml')
+    ];
+    
+    console.log('Looking for app-update.yml in:', possiblePaths);
+    
+    // For now, set the feed URL manually to avoid file path issues
+    autoUpdater.setFeedURL({
+      provider: 'github',
+      owner: 'moodysaroha',
+      repo: 'postboy',
+      private: false,
+      vPrefixedTagName: true
+    });
+    
+    console.log('Using manual GitHub configuration for updates');
 
     this.setupEventHandlers();
     
