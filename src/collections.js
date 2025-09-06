@@ -19,15 +19,6 @@ class CollectionsManager {
       });
     }
 
-    // Save request button
-    const saveRequestBtn = document.getElementById('save-request-btn-main');
-    if (saveRequestBtn) {
-      saveRequestBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.saveCurrentRequest();
-      });
-    }
-
     this.setupModalEventListeners();
   }
 
@@ -79,6 +70,11 @@ class CollectionsManager {
     this.collections.unshift(collection);
     this.saveCollections();
     this.renderCollections();
+    
+    // Switch to Collections tab after creating a new collection
+    if (window.postboy && window.postboy.switchSidebarTab) {
+      window.postboy.switchSidebarTab('collections');
+    }
   }
 
   async saveCurrentRequest() {
@@ -94,7 +90,7 @@ class CollectionsManager {
   }
 
   async showSaveRequestModal(method, url) {
-    const defaultName = `${method} ${url.split('/').pop() || 'Request'}`;
+    const defaultName = url.split('/').pop() || 'Request';
     
     if (this.collections.length === 0) {
       const createFirst = await window.modalManager.confirm(
@@ -201,10 +197,16 @@ class CollectionsManager {
     let params = {};
     let body = '';
     
+    let bodyType = 'none';
+    
     if (window.postboy) {
       headers = window.postboy.getKeyValuePairs('headers-container');
       params = window.postboy.getKeyValuePairs('params-container');
-      body = document.getElementById('body-input')?.textContent.trim() || '';
+      
+      // Get body and body type from the current selection
+      const bodyData = window.postboy.getRequestBody();
+      body = bodyData.body || '';
+      bodyType = window.postboy.getCurrentBodyType();
     }
     
     let fullUrl = baseUrl;
@@ -231,6 +233,7 @@ class CollectionsManager {
       headers,
       params,
       body,
+      bodyType,
       auth: authData,
       response: responseData,
       created: new Date().toISOString()
@@ -239,6 +242,16 @@ class CollectionsManager {
     this.collections[collectionIndex].requests.push(request);
     this.saveCollections();
     this.renderCollections();
+    
+    // Switch to Collections tab after saving
+    if (window.postboy && window.postboy.switchSidebarTab) {
+      window.postboy.switchSidebarTab('collections');
+    }
+    
+    // Mark current tab as saved
+    if (window.postboy && window.postboy.markTabAsSaved) {
+      window.postboy.markTabAsSaved(null, requestName);
+    }
     
     // Log success
     if (window.postboy && window.postboy.addConsoleLog) {
@@ -436,10 +449,22 @@ class CollectionsManager {
     const allParams = { ...urlParams, ...(request.params || {}) };
     window.postboy.setKeyValuePairs('params-container', allParams);
 
-    // Set body
-    const bodyInput = document.getElementById('body-input');
-    bodyInput.textContent = request.body || '';
-    window.postboy.highlightBodyJSON();
+    // Set body type and content
+    const bodyType = request.bodyType || (request.body ? 'json' : 'none'); // Fallback for old requests
+    window.postboy.setBodyType(bodyType);
+    
+    if (request.body && bodyType !== 'none') {
+      if (bodyType === 'form-urlencoded') {
+        // Handle form URL encoded data
+        window.postboy.setFormUrlEncodedData(request.body);
+      } else if (bodyType === 'form-data') {
+        // Handle form data (would need more complex restoration)
+        console.warn('Form data restoration not fully implemented');
+      } else {
+        // Handle text-based body types (json, xml, yaml, etc.) with auto-formatting
+        window.postboy.setBodyContentWithFormatting(bodyType, request.body);
+      }
+    }
     window.postboy.updateTabIndicators();
 
     // Load auth data if available
@@ -454,6 +479,11 @@ class CollectionsManager {
         ok: request.response.status < 400,
         headers: new Map(Object.entries(request.response.headers || {}))
       }, request.response.data, request.response.responseTime, request.created);
+    }
+    
+    // Mark current tab as saved with the request name
+    if (window.postboy && window.postboy.markTabAsSaved) {
+      window.postboy.markTabAsSaved(null, request.name);
     }
   }
 

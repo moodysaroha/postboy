@@ -236,7 +236,7 @@
         <div id="tip-text">You can use keyboard shortcuts like Ctrl+Enter to send requests quickly!</div>
     </div>
 
-    <div class="version-info">POSTBOY v1.0.0</div>
+    <div class="version-info" id="version-info">POSTBOY v...</div>
 
     <script>
         // Loading messages that cycle through
@@ -288,8 +288,25 @@
             }
         }
 
+        // Load and display app version
+        async function loadAppVersion() {
+            try {
+                if (window.electronAPI && window.electronAPI.getVersion) {
+                    const version = await window.electronAPI.getVersion();
+                    const versionElement = document.getElementById('version-info');
+                    if (versionElement) {
+                        versionElement.textContent = `POSTBOY v${version}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load app version:', error);
+                // Keep the placeholder text
+            }
+        }
+
         // Initialize animations
         showRandomTip();
+        loadAppVersion();
         
         // Update status every 400ms
         const statusInterval = setInterval(updateStatus, 400);
@@ -298,25 +315,25 @@
         const progressInterval = setInterval(updateProgress, 200);
 
         // Listen for ready message from main process
-        const { ipcRenderer } = require('electron');
-        
-        ipcRenderer.on('app-ready', () => {
-            // Complete the progress bar
-            const progressEl = document.getElementById('progress');
-            if (progressEl) {
-                progressEl.style.width = '100%';
-            }
-            
-            // Update final status
-            const statusEl = document.getElementById('status');
-            if (statusEl) {
-                statusEl.textContent = 'Ready!';
-            }
-            
-            // Clear intervals
-            clearInterval(statusInterval);
-            clearInterval(progressInterval);
-        });
+        if (window.electronAPI && window.electronAPI.onAppReady) {
+            window.electronAPI.onAppReady(() => {
+                // Complete the progress bar
+                const progressEl = document.getElementById('progress');
+                if (progressEl) {
+                    progressEl.style.width = '100%';
+                }
+                
+                // Update final status
+                const statusEl = document.getElementById('status');
+                if (statusEl) {
+                    statusEl.textContent = 'Ready!';
+                }
+                
+                // Clear intervals
+                clearInterval(statusInterval);
+                clearInterval(progressInterval);
+            });
+        }
 
         // Auto-close after maximum time (failsafe)
         setTimeout(() => {

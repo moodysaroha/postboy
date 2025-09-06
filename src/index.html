@@ -14,6 +14,9 @@
         <h1><img src="assets/icons/png/32x32.png" alt="PostBoy" class="app-logo"> PostBoy</h1>
       </div>
       <div class="header-right">
+        <button class="shortcuts-btn" popovertarget="shortcuts-popover" title="Keyboard Shortcuts">
+          ⌨️
+        </button>
       </div>
     </header>
 
@@ -72,7 +75,7 @@
           <div class="request-tabs-list">
             <div class="request-tab active" data-tab-id="new-request">
               <span class="tab-title">New Request</span>
-              <button class="tab-close-btn" style="display: none;">&times;</button>
+              <button class="tab-close-btn">&times;</button>
             </div>
           </div>
           <button class="new-tab-btn" title="New Tab">+</button>
@@ -80,7 +83,6 @@
 
         <div class="request-section">
           <div class="request-line">
-            <!-- Custom dropdown to replace select -->
             <div id="method-dropdown" class="custom-dropdown">
               <div class="dropdown-selected" data-value="GET">
                 <span class="dropdown-text">GET</span>
@@ -98,9 +100,8 @@
                 <div class="dropdown-option" data-value="HEAD">HEAD</div>
               </div>
             </div>
-            <input type="text" id="url-input" class="url-input" placeholder="Enter request URL" />
-            <button id="send-btn" class="send-btn">Send</button>
-            <button id="save-request-btn-main" class="send-btn">Save</button>            
+            <input type="text" id="url-input" class="url-input" placeholder="Enter request URL or paste curl command" />
+            <button id="send-btn" class="send-btn">Send</button>            
           </div>
 
           <div class="request-tabs">
@@ -137,11 +138,131 @@
             <div id="body-tab" class="tab-pane">
               <div class="body-editor-container">
                 <div class="body-editor-toolbar">
-                  <button id="body-format-json" class="format-btn" title="Format as JSON">Format JSON</button>
-                  <button id="body-toggle-view" class="format-btn" title="Toggle View/Edit">📝</button>
+                  <div id="body-type-dropdown" class="custom-dropdown override">
+                    <div class="dropdown-selected override" data-value="json">
+                      <span class="dropdown-text">JSON</span>
+                      <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
+                        <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="dropdown-options">
+                      <div class="dropdown-section-header override">☰ STRUCTURED</div>
+                      <div class="dropdown-option override" data-value="form-data">Form Data</div>
+                      <div class="dropdown-option override" data-value="form-urlencoded">Form URL Encoded</div>
+                      <div class="dropdown-option override" data-value="graphql">GraphQL</div>
+                      
+                      <div class="dropdown-section-header override"></> TEXT</div>
+                      <div class="dropdown-option override" data-value="json">JSON</div>
+                      <div class="dropdown-option override" data-value="xml">XML</div>
+                      <div class="dropdown-option override" data-value="yaml">YAML</div>
+                      <div class="dropdown-option override" data-value="html">HTML</div>
+                      <div class="dropdown-option override" data-value="javascript">JavaScript</div>
+                      <div class="dropdown-option override" data-value="text">Plain Text</div>
+                      
+                      <div class="dropdown-section-header override">⋯OTHER</div>
+                      <div class="dropdown-option override" data-value="binary">File</div>
+                      <div class="dropdown-option override" data-value="none">No Body</div>
+                    </div>
+                  </div>
+                  <div class="body-actions" id="body-actions">
+                    <button id="body-format-json" class="format-btn" title="Format JSON">Format JSON</button>
+                    <button id="body-toggle-view" class="format-btn" title="Toggle View/Edit">📝</button>
+                  </div>
                 </div>
-                <div id="body-input" class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter request body (JSON, XML, etc.)"></div>
-                <div id="body-json-viewer" class="body-json-viewer" style="display: none;"></div>
+                
+                <!-- No Body -->
+                <div id="body-none" class="body-content">
+                  <div class="empty-state">This request does not have a body.</div>
+                </div>
+                
+                <!-- Form Data -->
+                <div id="body-form-data" class="body-content">
+                  <div class="key-value-pairs" id="form-data-container">
+                    <div class="key-value-row">
+                      <input type="text" placeholder="Key" class="key-input" />
+                      <input type="text" placeholder="Value" class="value-input" />
+                      <select class="type-select">
+                        <option value="text">Text</option>
+                        <option value="file">File</option>
+                      </select>
+                      <button class="remove-btn">×</button>
+                    </div>
+                  </div>
+                  <button class="add-btn" data-target="form-data">+ Add Field</button>
+                </div>
+                
+                <!-- Form URL Encoded -->
+                <div id="body-form-urlencoded" class="body-content">
+                  <div class="key-value-pairs" id="form-urlencoded-container">
+                    <div class="key-value-row">
+                      <input type="text" placeholder="Key" class="key-input" />
+                      <input type="text" placeholder="Value" class="value-input" />
+                      <button class="remove-btn">×</button>
+                    </div>
+                  </div>
+                  <button class="add-btn" data-target="form-urlencoded">+ Add Field</button>
+                </div>
+                
+                <!-- JSON -->
+                <div id="body-json" class="body-content active">
+                  <div id="body-input" class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter JSON data"></div>
+                  <div id="body-json-viewer" class="body-json-viewer" style="display: none;"></div>
+                </div>
+                
+                <!-- XML -->
+                <div id="body-xml" class="body-content">
+                  <div class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter XML data"></div>
+                </div>
+                
+                <!-- YAML -->
+                <div id="body-yaml" class="body-content">
+                  <div class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter YAML data"></div>
+                </div>
+                
+                <!-- HTML -->
+                <div id="body-html" class="body-content">
+                  <div class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter HTML content"></div>
+                </div>
+                
+                <!-- JavaScript -->
+                <div id="body-javascript" class="body-content">
+                  <div class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter JavaScript code"></div>
+                </div>
+                
+                <!-- Plain Text -->
+                <div id="body-text" class="body-content">
+                  <div class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter plain text"></div>
+                </div>
+                
+                <!-- Binary -->
+                <div id="body-binary" class="body-content">
+                  <div class="file-upload-area">
+                    <input type="file" id="binary-file-input" class="file-input" />
+                    <div class="file-upload-placeholder">
+                      <p>Select a file to upload</p>
+                      <button type="button" class="select-file-btn">Choose File</button>
+                    </div>
+                    <div class="file-info" id="file-info" style="display: none;">
+                      <span class="file-name"></span>
+                      <span class="file-size"></span>
+                      <button type="button" class="remove-file-btn">Remove</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- GraphQL -->
+                <div id="body-graphql" class="body-content">
+                  <div class="graphql-container">
+                    <div class="graphql-section">
+                      <label>Query</label>
+                      <div id="graphql-query" class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter GraphQL query"></div>
+                    </div>
+                    <div class="graphql-section">
+                      <label>Variables</label>
+                      <div id="graphql-variables" class="body-input" contenteditable="true" spellcheck="false" data-placeholder="Enter variables (JSON)"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -206,7 +327,7 @@
           <button class="response-tab-btn active" data-tab="preview">Preview</button>
           <button class="response-tab-btn" data-tab="headers">
             Headers
-            <span class="tab-count" id="headers-count">4</span>
+            <span class="tab-count" id="response-headers-count">0</span>
           </button>
           <!-- <button class="response-tab-btn" data-tab="cookies">Cookies</button>
           <button class="response-tab-btn" data-tab="tests">
@@ -282,6 +403,172 @@
     </div>
 
 
+
+    <!-- Shortcuts Popover -->
+    <div id="shortcuts-popover" popover="auto" class="shortcuts-popover">
+      <div class="shortcuts-header">
+        <h3>Keyboard Shortcuts</h3>
+      </div>
+      <div class="shortcuts-content">
+        <div class="shortcuts-section">
+          <h4>Help</h4>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>P</kbd><kbd>P</kbd><kbd>P</kbd><kbd>P</kbd>
+            </div>
+            <span class="shortcut-description">Show this help (works anywhere)</span>
+          </div>
+        </div>
+        
+        <div class="shortcuts-section">
+          <h4>Navigation</h4>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>I</kbd>
+            </div>
+            <span class="shortcut-description">Focus URL input</span>
+          </div>
+        </div>
+        
+        <div class="shortcuts-section">
+          <h4>Actions</h4>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
+            </div>
+            <span class="shortcut-description">Send request (from Anywhere)</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Enter</kbd>
+            </div>
+            <span class="shortcut-description">Send request (from URL)</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>S</kbd>
+            </div>
+            <span class="shortcut-description">Save request</span>
+          </div>
+        </div>
+        
+        <div class="shortcuts-section">
+          <h4>Request Building</h4>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>H</kbd>
+            </div>
+            <span class="shortcut-description">Focus headers tab</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd>
+            </div>
+            <span class="shortcut-description">Focus body tab</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>J</kbd>
+            </div>
+            <span class="shortcut-description">Set body to JSON</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>X</kbd>
+            </div>
+            <span class="shortcut-description">Set body to XML</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>Y</kbd>
+            </div>
+            <span class="shortcut-description">Set body to YAML</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>H</kbd>
+            </div>
+            <span class="shortcut-description">Set body to HTML</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>T</kbd>
+            </div>
+            <span class="shortcut-description">Set body to Text</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>F</kbd>
+            </div>
+            <span class="shortcut-description">Set body to Form Data</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>U</kbd>
+            </div>
+            <span class="shortcut-description">Set body to Form URL Encoded</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>I</kbd>
+            </div>
+            <span class="shortcut-description">Set body to Binary/File</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>G</kbd>
+            </div>
+            <span class="shortcut-description">Set body to GraphQL</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>B</kbd> + <kbd>N</kbd>
+            </div>
+            <span class="shortcut-description">Set body to None</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>P</kbd>
+            </div>
+            <span class="shortcut-description">Focus params tab</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>A</kbd>
+            </div>
+            <span class="shortcut-description">Focus auth tab</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>
+            </div>
+            <span class="shortcut-description">Switch to Collections</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd>
+            </div>
+            <span class="shortcut-description">Switch to History</span>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd>Tab</kbd>
+            </div>
+            <span class="shortcut-description">Navigate between fields</span>
+          </div>
+        </div>
+        
+        <div class="shortcuts-section">
+          <h4>Tips</h4>
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <span class="tip-icon">💡</span>
+            </div>
+            <span class="shortcut-description">Paste curl commands directly in URL input</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Load modules first -->
     <script src="renderjson.js"></script>    

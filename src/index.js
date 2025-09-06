@@ -19,8 +19,9 @@ const createLoadingWindow = () => {
     backgroundColor: '#2c2f33',
     show: false,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, 'assets', 'icons', 'win', 'icon.ico'),
   });

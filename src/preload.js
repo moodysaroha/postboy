@@ -26,5 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Get app version
   getVersion: () => {
     return ipcRenderer.invoke('get-version');
+  },
+
+  // Listen for app ready message (for loading screen)
+  onAppReady: (callback) => {
+    ipcRenderer.on('app-ready', callback);
   }
 });
