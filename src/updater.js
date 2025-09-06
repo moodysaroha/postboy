@@ -125,16 +125,8 @@ class AppUpdater {
       console.warn('electron-log not available; updater logs limited');
     }
     
-    // Use main postboy repository for releases - no authentication needed
-    autoUpdater.setFeedURL({
-      provider: 'github',
-      owner: 'moodysaroha',
-      repo: 'postboy',
-      private: false,
-      vPrefixedTagName: true
-    });
-
-    console.log('Using main repository for updates - no authentication required (github:moodysaroha/postboy)');
+    // Configuration will be read from app-update.yml
+    console.log('Using app-update.yml configuration for updates (github:moodysaroha/postboy)');
 
     this.setupEventHandlers();
     

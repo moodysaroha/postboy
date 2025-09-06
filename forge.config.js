@@ -14,8 +14,11 @@ module.exports = {
       InternalName: 'PostBoy',
       AppUserModelID: 'com.moodysaroha.postboy',
     },
-    extraResources: [
-      './app-update.yml' // Include app-update.yml in the resources folder
+    extraFiles: [
+      {
+        from: './app-update.yml',
+        to: 'app-update.yml'
+      }
     ]
   },
   rebuildConfig: {},
